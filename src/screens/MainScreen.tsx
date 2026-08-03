@@ -34,6 +34,9 @@ export default function MainScreen() {
       </button>
 
       <div className="main-footer">
+        <button type="button" className="main-footer-link" onClick={() => navigate("/team-members")}>
+          팀원 현황
+        </button>
         <button type="button" className="main-footer-link" onClick={() => navigate("/app-info")}>
           앱 정보
         </button>

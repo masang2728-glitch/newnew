@@ -3,16 +3,23 @@ import { ADMIN_PIN, SUPER_ADMIN_PIN } from "../constants";
 
 const NAME_KEY = "session:userName";
 const TEAM_KEY = "session:teamName";
+const ORDER_KEY = "session:orderNo";
 const ADMIN_KEY = "session:isAdmin";
 const SUPER_ADMIN_KEY = "session:isSuperAdmin";
 
 interface SessionContextValue {
   userName: string | null;
   teamName: string | null;
+  orderNo: number | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
   isLoading: boolean;
-  login: (name: string, team: string, pin: string) => { ok: true } | { ok: false; error: string };
+  login: (
+    name: string,
+    orderNo: number,
+    team: string,
+    pin: string
+  ) => { ok: true } | { ok: false; error: string };
   loginSuperAdmin: (code: string) => { ok: true } | { ok: false; error: string };
   logout: () => void;
 }
@@ -22,6 +29,7 @@ const SessionContext = createContext<SessionContextValue | undefined>(undefined)
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState<string | null>(null);
   const [teamName, setTeamName] = useState<string | null>(null);
+  const [orderNo, setOrderNo] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,12 +37,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setUserName(localStorage.getItem(NAME_KEY));
     setTeamName(localStorage.getItem(TEAM_KEY));
+    const storedOrder = localStorage.getItem(ORDER_KEY);
+    setOrderNo(storedOrder ? Number(storedOrder) : null);
     setIsAdmin(localStorage.getItem(ADMIN_KEY) === "true");
     setIsSuperAdmin(localStorage.getItem(SUPER_ADMIN_KEY) === "true");
     setIsLoading(false);
   }, []);
 
-  const login = (name: string, team: string, pin: string) => {
+  const login = (name: string, orderNo: number, team: string, pin: string) => {
     const trimmedName = name.trim();
     const trimmedTeam = team.trim();
     const trimmedPin = pin.trim();
@@ -46,9 +56,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.setItem(NAME_KEY, trimmedName);
     localStorage.setItem(TEAM_KEY, trimmedTeam);
+    localStorage.setItem(ORDER_KEY, String(orderNo));
     localStorage.setItem(ADMIN_KEY, admin ? "true" : "false");
     setUserName(trimmedName);
     setTeamName(trimmedTeam);
+    setOrderNo(orderNo);
     setIsAdmin(admin);
     return { ok: true as const };
   };
@@ -65,17 +77,19 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(TEAM_KEY);
+    localStorage.removeItem(ORDER_KEY);
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(SUPER_ADMIN_KEY);
     setUserName(null);
     setTeamName(null);
+    setOrderNo(null);
     setIsAdmin(false);
     setIsSuperAdmin(false);
   };
 
   return (
     <SessionContext.Provider
-      value={{ userName, teamName, isAdmin, isSuperAdmin, isLoading, login, loginSuperAdmin, logout }}
+      value={{ userName, teamName, orderNo, isAdmin, isSuperAdmin, isLoading, login, loginSuperAdmin, logout }}
     >
       {children}
     </SessionContext.Provider>

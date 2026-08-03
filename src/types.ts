@@ -16,3 +16,9 @@ export interface RequestEntry {
   // 야근 신청에만 존재
   subType?: OvertimeSubType;
 }
+
+export interface TeamMember {
+  name: string;
+  orderNo: number;
+  joinedAt: number; // epoch millis
+}

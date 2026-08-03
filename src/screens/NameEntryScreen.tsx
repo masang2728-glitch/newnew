@@ -2,30 +2,46 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
+import { upsertMember } from "../api/members";
 
 export default function NameEntryScreen() {
   const { login, loginSuperAdmin } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
+  const [orderNo, setOrderNo] = useState("");
   const [team, setTeam] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
+  const [entering, setEntering] = useState(false);
 
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const [superAdminCode, setSuperAdminCode] = useState("");
 
-  const handleEnter = () => {
+  const handleEnter = async () => {
     if (!name.trim()) {
       toast.error("이름을 입력해주세요.");
+      return;
+    }
+    const orderNoValue = Number(orderNo.trim());
+    if (!orderNo.trim() || !Number.isFinite(orderNoValue)) {
+      toast.error("순번을 입력해주세요.");
       return;
     }
     if (!team.trim()) {
       toast.error("팀명을 입력해주세요.");
       return;
     }
-    const result = login(name, team, pin);
+    const result = login(name, orderNoValue, team, pin);
     if (!result.ok) {
       toast.error(result.error);
+      return;
+    }
+    setEntering(true);
+    try {
+      await upsertMember(team.trim(), name.trim(), orderNoValue);
+    } catch {
+      toast.error("팀원 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      setEntering(false);
       return;
     }
     navigate("/main", { replace: true });
@@ -52,7 +68,7 @@ export default function NameEntryScreen() {
     <div className="entry-screen">
       <div className="entry-card">
         <h1 className="entry-title">휴가/야근 신청 캘린더</h1>
-        <p className="entry-subtitle">이름과 팀명을 입력하고 입장해주세요</p>
+        <p className="entry-subtitle">이름, 순번, 팀명을 입력하고 입장해주세요</p>
 
         <input
           className="entry-input"
@@ -61,6 +77,14 @@ export default function NameEntryScreen() {
           onChange={(e) => setName(e.target.value)}
           onKeyDown={onKeyDown}
           autoFocus
+        />
+        <input
+          className="entry-input"
+          placeholder="순번"
+          type="number"
+          value={orderNo}
+          onChange={(e) => setOrderNo(e.target.value)}
+          onKeyDown={onKeyDown}
         />
         <input
           className="entry-input"
@@ -88,8 +112,8 @@ export default function NameEntryScreen() {
           </button>
         )}
 
-        <button type="button" className="entry-button" onClick={handleEnter}>
-          입장
+        <button type="button" className="entry-button" onClick={handleEnter} disabled={entering}>
+          {entering ? "입장 중..." : "입장"}
         </button>
 
         <div className="super-admin-block">

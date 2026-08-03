@@ -6,6 +6,7 @@ import MainScreen from "./screens/MainScreen";
 import RequestScreen from "./screens/RequestScreen";
 import SuperAdminScreen from "./screens/SuperAdminScreen";
 import AppInfoScreen from "./screens/AppInfoScreen";
+import TeamMembersScreen from "./screens/TeamMembersScreen";
 
 function RequireSession({ children }: { children: React.ReactNode }) {
   const { userName, teamName, isLoading } = useSession();
@@ -56,6 +57,14 @@ function App() {
             element={
               <RequireSession>
                 <RequestScreen type="overtime" title="야근" themeColor="#F97316" />
+              </RequireSession>
+            }
+          />
+          <Route
+            path="/team-members"
+            element={
+              <RequireSession>
+                <TeamMembersScreen />
               </RequireSession>
             }
           />
