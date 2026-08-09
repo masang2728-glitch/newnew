@@ -17,6 +17,8 @@ function fromRow(row: any): RequestEntry {
     destination: row.destination ?? undefined,
     reason: row.reason ?? undefined,
     subType: row.sub_type ?? undefined,
+    confirmedAt: row.confirmed_at ? new Date(row.confirmed_at).getTime() : undefined,
+    confirmedBy: row.confirmed_by ?? undefined,
   };
 }
 
@@ -86,4 +88,48 @@ export async function createRequest(
 export async function cancelRequest(type: RequestType, id: string) {
   const { error } = await supabase.from(tableName(type)).delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function setConfirmed(
+  type: RequestType,
+  id: string,
+  confirmed: boolean,
+  adminName: string
+) {
+  const payload = confirmed
+    ? { confirmed_at: new Date().toISOString(), confirmed_by: adminName }
+    : { confirmed_at: null, confirmed_by: null };
+  const { error } = await supabase.from(tableName(type)).update(payload).eq("id", id);
+  if (error) throw error;
+}
+
+export function subscribePendingCount(
+  team: string,
+  type: RequestType,
+  onChange: (count: number) => void
+) {
+  const table = tableName(type);
+  let cancelled = false;
+
+  const load = async () => {
+    const { count, error } = await supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("team", team)
+      .is("confirmed_at", null);
+    if (cancelled || error) return;
+    onChange(count ?? 0);
+  };
+
+  load();
+
+  const channel = supabase
+    .channel(`${table}-pending-${Math.random().toString(36).slice(2)}`)
+    .on("postgres_changes", { event: "*", schema: "public", table }, () => load())
+    .subscribe();
+
+  return () => {
+    cancelled = true;
+    supabase.removeChannel(channel);
+  };
 }

@@ -15,6 +15,9 @@ export interface RequestEntry {
   reason?: string;
   // 야근 신청에만 존재
   subType?: OvertimeSubType;
+  // 관리자 확인 여부
+  confirmedAt?: number; // epoch millis
+  confirmedBy?: string;
 }
 
 export interface TeamMember {

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import type { RequestEntry, RequestType } from "../types";
-import { subscribeToRequests, createRequest, cancelRequest } from "../api/requests";
+import { subscribeToRequests, createRequest, cancelRequest, setConfirmed } from "../api/requests";
 import { isPastDate, todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
 import {
@@ -244,6 +244,15 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     }
   };
 
+  const handleToggleConfirm = async (entry: RequestEntry) => {
+    if (!isAdmin || !userName) return;
+    try {
+      await setConfirmed(type, entry.id, !entry.confirmedAt, userName);
+    } catch {
+      toast.error("확인 처리 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleCancel = async (entry: RequestEntry) => {
     const allowed = entry.name === userName || isAdmin;
     if (!allowed) return;
@@ -454,9 +463,26 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                   <span className="entry-row-text">
                     {entryLabel(e)} · {e.date}
                   </span>
-                  <button type="button" className="cancel-link" onClick={() => handleCancel(e)}>
-                    취소
-                  </button>
+                  <div className="entry-row-actions">
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        className={`confirm-button ${e.confirmedAt ? "confirm-button-done" : "confirm-button-pending"}`}
+                        onClick={() => handleToggleConfirm(e)}
+                      >
+                        {e.confirmedAt ? "✓ 확인됨" : "확인"}
+                      </button>
+                    ) : (
+                      <span
+                        className={`confirm-badge ${e.confirmedAt ? "confirm-badge-done" : "confirm-badge-pending"}`}
+                      >
+                        {e.confirmedAt ? "✓ 관리자 확인 완료" : "확인 대기중"}
+                      </span>
+                    )}
+                    <button type="button" className="cancel-link" onClick={() => handleCancel(e)}>
+                      취소
+                    </button>
+                  </div>
                 </div>
               ))
             )}
@@ -510,6 +536,12 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                           {e.leaveType}
                           {e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : ""}
                           {e.destination ? ` · ${e.destination}` : ""}
+                          {" · "}
+                          <span
+                            className={`confirm-badge ${e.confirmedAt ? "confirm-badge-done" : "confirm-badge-pending"}`}
+                          >
+                            {e.confirmedAt ? "✓ 확인" : "대기"}
+                          </span>
                         </div>
                       </div>
                     ))
