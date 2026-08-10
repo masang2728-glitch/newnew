@@ -329,6 +329,19 @@ button, input {
   font-size: 13px;
   font-weight: 700;
   color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.inline-edit-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .text-field {
   width: 100%;

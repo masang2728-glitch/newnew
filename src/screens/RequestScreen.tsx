@@ -7,7 +7,9 @@ import { subscribeToRequests, createRequest, cancelRequest, setConfirmed } from 
 import { isPastDate, todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
 import {
-  VACATION_TYPES,
+  VACATION_CATEGORIES,
+  type VacationCategory,
+  LEAVE_SUBTYPES,
   type VacationType,
   OVERTIME_SUBTYPES,
   type OvertimeSubType,
@@ -52,9 +54,17 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [endTime, setEndTime] = useState("");
   const [destination, setDestination] = useState("");
   const [reason, setReason] = useState("");
+  const [categoryPicker, setCategoryPicker] = useState<VacationCategory | null>(null);
+  const [reasonDraft, setReasonDraft] = useState("");
 
   const halfDayPreset = vacationType ? HALF_DAY_PRESETS[vacationType] : undefined;
   const reasonRequired = vacationType ? REASON_REQUIRED_TYPES.includes(vacationType) : false;
+
+  const selectedCategory: VacationCategory | null = !vacationType
+    ? null
+    : (LEAVE_SUBTYPES as readonly string[]).includes(vacationType)
+      ? "연가"
+      : (vacationType as VacationCategory);
 
   const selectVacationType = (vt: VacationType) => {
     setVacationType(vt);
@@ -66,6 +76,27 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
       setStartTime("");
       setEndTime("");
     }
+  };
+
+  const openCategoryPicker = (category: VacationCategory) => {
+    if (category !== "연가") setReasonDraft(reason);
+    setCategoryPicker(category);
+  };
+
+  const chooseLeaveSubType = (subType: VacationType) => {
+    selectVacationType(subType);
+    setCategoryPicker(null);
+  };
+
+  const confirmReasonCategory = () => {
+    if (!categoryPicker) return;
+    if (!reasonDraft.trim()) {
+      toast.error("사유를 입력해주세요.");
+      return;
+    }
+    selectVacationType(categoryPicker);
+    setReason(reasonDraft.trim());
+    setCategoryPicker(null);
   };
 
   // 야근 전용 상태
@@ -339,28 +370,41 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
 
                 <div className="field-label">휴가 유형</div>
                 <div className="chip-row">
-                  {VACATION_TYPES.map((vt) => (
+                  {VACATION_CATEGORIES.map((cat) => (
                     <button
-                      key={vt}
+                      key={cat}
                       type="button"
                       className="option-chip"
                       style={
-                        vacationType === vt
+                        selectedCategory === cat
                           ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
                           : undefined
                       }
-                      onClick={() => selectVacationType(vt)}
+                      onClick={() => openCategoryPicker(cat)}
                     >
-                      {vt}
+                      {cat}
                     </button>
                   ))}
                 </div>
 
-                {halfDayPreset ? (
+                {vacationType && (
                   <div className="auto-time-box">
-                    {vacationType} 자동 설정 · {halfDayPreset.start} ~ {halfDayPreset.end}
+                    <span>
+                      {vacationType} 선택됨
+                      {halfDayPreset ? ` · ${halfDayPreset.start} ~ ${halfDayPreset.end}` : ""}
+                      {reason ? ` · 사유: ${reason}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-edit-link"
+                      onClick={() => selectedCategory && openCategoryPicker(selectedCategory)}
+                    >
+                      수정
+                    </button>
                   </div>
-                ) : (
+                )}
+
+                {vacationType && !halfDayPreset && (
                   <>
                     <div className="field-label">시작시간 (선택)</div>
                     <div className="chip-row">
@@ -409,18 +453,6 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                 />
-
-                {reasonRequired && (
-                  <>
-                    <div className="field-label">사유</div>
-                    <input
-                      className="text-field"
-                      placeholder={`${vacationType} 사유를 입력해주세요`}
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </>
-                )}
               </>
             ) : (
               Object.keys(overtimeSelections).length > 0 && (
@@ -583,6 +615,59 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             <button type="button" className="modal-cancel" onClick={() => setPickerDate(null)}>
               닫기
             </button>
+          </div>
+        </div>
+      )}
+
+      {categoryPicker && (
+        <div className="modal-backdrop" onClick={() => setCategoryPicker(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            {categoryPicker === "연가" ? (
+              <>
+                <div className="modal-title">연가 세부 유형 선택</div>
+                {LEAVE_SUBTYPES.map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    className="modal-option"
+                    style={{ borderColor: themeColor, color: themeColor }}
+                    onClick={() => chooseLeaveSubType(st)}
+                  >
+                    {st}
+                  </button>
+                ))}
+                <button type="button" className="modal-cancel" onClick={() => setCategoryPicker(null)}>
+                  닫기
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="modal-title">{categoryPicker} 사유 입력</div>
+                <input
+                  className="text-field"
+                  placeholder={`${categoryPicker} 사유를 입력해주세요`}
+                  value={reasonDraft}
+                  onChange={(e) => setReasonDraft(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="modal-option"
+                  style={{
+                    backgroundColor: themeColor,
+                    borderColor: themeColor,
+                    color: "#fff",
+                    marginTop: 12,
+                  }}
+                  onClick={confirmReasonCategory}
+                >
+                  확인
+                </button>
+                <button type="button" className="modal-cancel" onClick={() => setCategoryPicker(null)}>
+                  닫기
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
