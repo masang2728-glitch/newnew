@@ -89,7 +89,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   };
 
   const confirmReasonCategory = () => {
-    if (!categoryPicker) return;
+    if (!categoryPicker || categoryPicker === "연가") return;
     if (!reasonDraft.trim()) {
       toast.error("사유를 입력해주세요.");
       return;

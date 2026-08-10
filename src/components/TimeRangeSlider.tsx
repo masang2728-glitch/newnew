@@ -1,5 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
+type StyleWithCustomProps = CSSProperties & { "--thumb-color"?: string };
+
 interface TimeRangeSliderProps {
   startTime: string; // "HH:MM" or ""
   endTime: string; // "HH:MM" or ""
@@ -51,7 +53,7 @@ export default function TimeRangeSlider({
 
   const pct = (v: number) => ((v - minHour) / (maxHour - minHour)) * 100;
   const hours = Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i);
-  const style = { "--thumb-color": themeColor } as CSSProperties;
+  const style: StyleWithCustomProps = { "--thumb-color": themeColor };
 
   return (
     <div className="range-block" style={style}>
