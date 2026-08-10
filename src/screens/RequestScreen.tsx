@@ -6,6 +6,7 @@ import type { RequestEntry, RequestType } from "../types";
 import { subscribeToRequests, createRequest, cancelRequest, setConfirmed } from "../api/requests";
 import { isPastDate, todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
+import TimeRangeSlider from "../components/TimeRangeSlider";
 import {
   VACATION_CATEGORIES,
   type VacationCategory,
@@ -13,7 +14,6 @@ import {
   type VacationType,
   OVERTIME_SUBTYPES,
   type OvertimeSubType,
-  HOUR_SLOTS,
   HALF_DAY_PRESETS,
   REASON_REQUIRED_TYPES,
 } from "../constants";
@@ -406,43 +406,16 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
 
                 {vacationType && !halfDayPreset && (
                   <>
-                    <div className="field-label">시작시간 (선택)</div>
-                    <div className="chip-row">
-                      {HOUR_SLOTS.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          className="hour-chip"
-                          style={
-                            startTime === slot
-                              ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
-                              : undefined
-                          }
-                          onClick={() => setStartTime((prev) => (prev === slot ? "" : slot))}
-                        >
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="field-label">종료시간 (선택)</div>
-                    <div className="chip-row">
-                      {HOUR_SLOTS.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          className="hour-chip"
-                          style={
-                            endTime === slot
-                              ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
-                              : undefined
-                          }
-                          onClick={() => setEndTime((prev) => (prev === slot ? "" : slot))}
-                        >
-                          {slot}
-                        </button>
-                      ))}
-                    </div>
+                    <div className="field-label">시작~종료시간 (선택)</div>
+                    <TimeRangeSlider
+                      startTime={startTime}
+                      endTime={endTime}
+                      onChange={(s, e) => {
+                        setStartTime(s);
+                        setEndTime(e);
+                      }}
+                      themeColor={themeColor}
+                    />
                   </>
                 )}
 

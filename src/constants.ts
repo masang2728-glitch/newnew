@@ -28,11 +28,5 @@ export const HALF_DAY_PRESETS: Partial<Record<VacationType, { start: string; end
   오후반차: { start: "12:00", end: "17:00" },
 };
 
-// 시작/종료시간 선택용 1시간 단위 슬롯 (07:00 ~ 17:00)
-export const HOUR_SLOTS: string[] = Array.from({ length: 11 }, (_, i) => {
-  const hour = 7 + i;
-  return `${String(hour).padStart(2, "0")}:00`;
-});
-
 export const OVERTIME_SUBTYPES = ["조출", "야근"] as const;
 export type OvertimeSubType = (typeof OVERTIME_SUBTYPES)[number];
