@@ -32,7 +32,8 @@ function entryLabel(entry: RequestEntry): string {
   if (entry.leaveType) {
     const timeRange = entry.startTime && entry.endTime ? `, ${entry.startTime}~${entry.endTime}` : "";
     const dest = entry.destination ? `, ${entry.destination}` : "";
-    return `${entry.name} (${entry.leaveType}${timeRange}${dest})`;
+    const reasonText = entry.reason ? `, 사유: ${entry.reason}` : "";
+    return `${entry.name} (${entry.leaveType}${timeRange}${dest}${reasonText})`;
   }
   return entry.name;
 }
@@ -541,6 +542,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                           {e.leaveType}
                           {e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : ""}
                           {e.destination ? ` · ${e.destination}` : ""}
+                          {e.reason ? ` · 사유: ${e.reason}` : ""}
                           {" · "}
                           <span
                             className={`confirm-badge ${e.confirmedAt ? "confirm-badge-done" : "confirm-badge-pending"}`}
