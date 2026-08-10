@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { getMonthGrid, toDateString } from "../dateUtils";
 import { getHolidayName } from "../holidays";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const SATURDAY_COLOR = "#2563EB";
 const SUNDAY_HOLIDAY_COLOR = "#DC2626";
 
@@ -45,18 +45,18 @@ export default function MonthCalendar({
           ‹
         </button>
         <div className="calendar-title">
-          {new Date(year, monthNum - 1, 1).toLocaleString("en-US", { month: "long" })} {year}
+          {year}년 {monthNum}월
         </div>
         <button type="button" className="calendar-nav" onClick={() => shiftMonth(1)} aria-label="다음 달">
           ›
         </button>
       </div>
       <div className="calendar-weekdays">
-        {WEEKDAYS.map((w) => (
+        {WEEKDAYS.map((w, i) => (
           <div
             key={w}
             className="calendar-weekday"
-            style={w === "Sun" ? { color: SUNDAY_HOLIDAY_COLOR } : w === "Sat" ? { color: SATURDAY_COLOR } : undefined}
+            style={i === 0 ? { color: SUNDAY_HOLIDAY_COLOR } : i === 6 ? { color: SATURDAY_COLOR } : undefined}
           >
             {w}
           </div>

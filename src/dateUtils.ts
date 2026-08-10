@@ -13,10 +13,10 @@ export function isPastDate(dateString: string): boolean {
   return dateString < todayString();
 }
 
-// 월요일 시작 (Mon, Tue, Wed, Thu, Fri, Sat, Sun 순)
+// 일요일 시작 (일, 월, 화, 수, 목, 금, 토 순)
 export function getMonthGrid(year: number, month1to12: number): (Date | null)[] {
   const first = new Date(year, month1to12 - 1, 1);
-  const startWeekday = (first.getDay() + 6) % 7; // JS: 0=Sun..6=Sat → 0=Mon..6=Sun
+  const startWeekday = first.getDay(); // JS: 0=Sun..6=Sat
   const daysInMonth = new Date(year, month1to12, 0).getDate();
 
   const cells: (Date | null)[] = [];
