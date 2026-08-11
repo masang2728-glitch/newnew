@@ -11,6 +11,7 @@ import {
   VACATION_CATEGORIES,
   type VacationCategory,
   LEAVE_SUBTYPES,
+  WORK_REST_SUBTYPES,
   type VacationType,
   OVERTIME_SUBTYPES,
   type OvertimeSubType,
@@ -65,7 +66,9 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     ? null
     : (LEAVE_SUBTYPES as readonly string[]).includes(vacationType)
       ? "연가"
-      : (vacationType as VacationCategory);
+      : (WORK_REST_SUBTYPES as readonly string[]).includes(vacationType)
+        ? "근무휴식"
+        : (vacationType as VacationCategory);
 
   const selectVacationType = (vt: VacationType) => {
     setVacationType(vt);
@@ -80,17 +83,17 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   };
 
   const openCategoryPicker = (category: VacationCategory) => {
-    if (category !== "연가") setReasonDraft(reason);
+    if (category === "공가" || category === "청원") setReasonDraft(reason);
     setCategoryPicker(category);
   };
 
-  const chooseLeaveSubType = (subType: VacationType) => {
+  const chooseSubType = (subType: VacationType) => {
     selectVacationType(subType);
     setCategoryPicker(null);
   };
 
   const confirmReasonCategory = () => {
-    if (!categoryPicker || categoryPicker === "연가") return;
+    if (!categoryPicker || categoryPicker === "연가" || categoryPicker === "근무휴식") return;
     if (!reasonDraft.trim()) {
       toast.error("사유를 입력해주세요.");
       return;
@@ -597,16 +600,16 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
       {categoryPicker && (
         <div className="modal-backdrop" onClick={() => setCategoryPicker(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {categoryPicker === "연가" ? (
+            {categoryPicker === "연가" || categoryPicker === "근무휴식" ? (
               <>
-                <div className="modal-title">연가 세부 유형 선택</div>
-                {LEAVE_SUBTYPES.map((st) => (
+                <div className="modal-title">{categoryPicker} 세부 유형 선택</div>
+                {(categoryPicker === "연가" ? LEAVE_SUBTYPES : WORK_REST_SUBTYPES).map((st) => (
                   <button
                     key={st}
                     type="button"
                     className="modal-option"
                     style={{ borderColor: themeColor, color: themeColor }}
-                    onClick={() => chooseLeaveSubType(st)}
+                    onClick={() => chooseSubType(st)}
                   >
                     {st}
                   </button>

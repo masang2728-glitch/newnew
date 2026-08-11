@@ -8,15 +8,19 @@ export const SUPER_ADMIN_PIN = "2728";
 export const APP_CREATED_AT = "2026-07-30";
 export const APP_AUTHOR = "윤상경";
 
-// 휴가 유형 대분류 (버튼 3개로 표시)
-export const VACATION_CATEGORIES = ["연가", "공가", "청원"] as const;
+// 휴가 유형 대분류 (버튼 4개로 표시)
+export const VACATION_CATEGORIES = ["연가", "공가", "청원", "근무휴식"] as const;
 export type VacationCategory = (typeof VACATION_CATEGORIES)[number];
 
 // "연가" 클릭 시 팝업으로 고르는 세부 유형
 export const LEAVE_SUBTYPES = ["1일 휴가", "오전반차", "오후반차", "외출"] as const;
 export type LeaveSubType = (typeof LEAVE_SUBTYPES)[number];
 
-export type VacationType = LeaveSubType | "공가" | "청원";
+// "근무휴식" 클릭 시 팝업으로 고르는 세부 유형
+export const WORK_REST_SUBTYPES = ["오전", "오후", "종일"] as const;
+export type WorkRestSubType = (typeof WORK_REST_SUBTYPES)[number];
+
+export type VacationType = LeaveSubType | WorkRestSubType | "공가" | "청원";
 
 // 사유 기입란이 필요한 휴가 유형 ("공가"/"청원"은 팝업에서 바로 사유를 입력받는다)
 export const REASON_REQUIRED_TYPES: VacationType[] = ["공가", "청원"];
@@ -26,6 +30,9 @@ export const HALF_DAY_PRESETS: Partial<Record<VacationType, { start: string; end
   "1일 휴가": { start: "08:00", end: "17:00" },
   오전반차: { start: "08:00", end: "12:00" },
   오후반차: { start: "12:00", end: "17:00" },
+  오전: { start: "08:00", end: "12:00" },
+  오후: { start: "12:00", end: "17:00" },
+  종일: { start: "08:00", end: "17:00" },
 };
 
 export const OVERTIME_SUBTYPES = ["조출", "야근"] as const;
