@@ -498,6 +498,35 @@ button, input {
 
 .viewer-name { font-size: 15px; color: #334155; margin-bottom: 6px; }
 
+.overtime-groups { display: flex; flex-direction: column; gap: 16px; }
+.overtime-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.overtime-group-title { font-size: 13.5px; font-weight: 800; color: #334155; }
+.overtime-group-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.overtime-group-empty { font-size: 12.5px; color: #94a3b8; margin: 0; }
+.name-chip {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+
 .agg-row { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
 .agg-row-top { display: flex; justify-content: space-between; }
 .agg-name { font-size: 14px; font-weight: 800; }

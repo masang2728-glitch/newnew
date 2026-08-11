@@ -28,6 +28,36 @@ interface Props {
 type Tab = "apply" | "calendar";
 type OvertimeChoice = OvertimeSubType | "둘다";
 
+interface OvertimeGroups {
+  both: string[];
+  earlyOnly: string[];
+  lateOnly: string[];
+}
+
+function groupOvertimeByPerson(dayEntries: RequestEntry[]): OvertimeGroups {
+  const byName = new Map<string, Set<OvertimeSubType>>();
+  for (const e of dayEntries) {
+    if (!e.subType) continue;
+    if (!byName.has(e.name)) byName.set(e.name, new Set());
+    byName.get(e.name)!.add(e.subType);
+  }
+  const groups: OvertimeGroups = { both: [], earlyOnly: [], lateOnly: [] };
+  for (const [name, subTypes] of byName) {
+    const hasEarly = subTypes.has("조출");
+    const hasLate = subTypes.has("야근");
+    if (hasEarly && hasLate) groups.both.push(name);
+    else if (hasEarly) groups.earlyOnly.push(name);
+    else if (hasLate) groups.lateOnly.push(name);
+  }
+  return groups;
+}
+
+const OVERTIME_GROUP_ORDER: { key: keyof OvertimeGroups; emoji: string; label: string }[] = [
+  { key: "both", emoji: "🔶", label: "조출 + 야근 둘 다" },
+  { key: "earlyOnly", emoji: "🌅", label: "조출만" },
+  { key: "lateOnly", emoji: "🌙", label: "야근만" },
+];
+
 function entryLabel(entry: RequestEntry): string {
   if (entry.subType) return `${entry.name} (${entry.subType})`;
   if (entry.leaveType) {
@@ -137,6 +167,11 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     for (const d of Object.keys(entriesByDate)) map[d] = entriesByDate[d].length;
     return map;
   }, [entriesByDate]);
+
+  const overtimeGroupsForViewingDate = useMemo(() => {
+    if (type !== "overtime" || !viewingDate) return null;
+    return groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
+  }, [type, viewingDate, entriesByDate]);
 
   const applySelectedSet = useMemo(
     () => (type === "vacation" ? selectedDates : new Set(Object.keys(overtimeSelections))),
@@ -515,7 +550,42 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             <div className="section-title">
               {viewingDate ? `${viewingDate} 신청자` : "날짜를 선택해주세요"}
             </div>
-            {viewingDate &&
+            {viewingDate && overtimeGroupsForViewingDate ? (
+              overtimeGroupsForViewingDate.both.length +
+                overtimeGroupsForViewingDate.earlyOnly.length +
+                overtimeGroupsForViewingDate.lateOnly.length ===
+              0 ? (
+                <p className="empty-text">신청자가 없습니다.</p>
+              ) : (
+                <div className="overtime-groups">
+                  {OVERTIME_GROUP_ORDER.map(({ key, emoji, label }) => {
+                    const names = overtimeGroupsForViewingDate[key];
+                    return (
+                      <div key={key} className="overtime-group">
+                        <div className="overtime-group-head">
+                          <span className="overtime-group-title">
+                            {emoji} {label}
+                          </span>
+                          <span className="overtime-group-count">{names.length}명</span>
+                        </div>
+                        {names.length === 0 ? (
+                          <p className="overtime-group-empty">없음</p>
+                        ) : (
+                          <div className="chip-row">
+                            {names.map((n) => (
+                              <span key={n} className="name-chip">
+                                {n}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              viewingDate &&
               (entriesByDate[viewingDate]?.length ? (
                 entriesByDate[viewingDate].map((e) => (
                   <p key={e.id} className="viewer-name">
@@ -524,7 +594,8 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 ))
               ) : (
                 <p className="empty-text">신청자가 없습니다.</p>
-              ))}
+              ))
+            )}
 
             {type === "vacation" && (
               <>
