@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
-import { subscribeToMembers } from "../api/members";
+import { subscribeToMembers, deleteMember } from "../api/members";
 import type { TeamMember } from "../types";
 
 export default function TeamMembersScreen() {
-  const { userName, teamName } = useSession();
+  const { userName, teamName, isAdmin } = useSession();
   const navigate = useNavigate();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingName, setDeletingName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!teamName) return;
@@ -27,13 +28,29 @@ export default function TeamMembersScreen() {
     return unsubscribe;
   }, [teamName]);
 
+  const handleDelete = async (member: TeamMember) => {
+    if (!teamName) return;
+    if (!window.confirm(`${member.name}님을 팀원 명단에서 삭제할까요?`)) return;
+    setDeletingName(member.name);
+    try {
+      await deleteMember(teamName, member.name);
+      toast.success(`${member.name}님을 삭제했습니다.`);
+    } catch {
+      toast.error("삭제 중 오류가 발생했습니다.");
+    } finally {
+      setDeletingName(null);
+    }
+  };
+
   return (
     <div className="request-screen">
       <div className="request-header" style={{ backgroundColor: "#0f766e" }}>
         <div className="request-header-row">
           <div>
             <h1 className="request-title">{teamName} 팀원 현황</h1>
-            <div className="request-user">{userName}님</div>
+            <div className="request-user">
+              {userName}님{isAdmin ? " · 관리자" : ""}
+            </div>
           </div>
           <button type="button" className="request-back" onClick={() => navigate("/main")}>
             메인으로 돌아가기 ›
@@ -63,6 +80,16 @@ export default function TeamMembersScreen() {
                   {m.name === userName ? " (나)" : ""}
                 </div>
               </div>
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="cancel-link"
+                  disabled={deletingName === m.name}
+                  onClick={() => handleDelete(m)}
+                >
+                  {deletingName === m.name ? "삭제 중..." : "삭제"}
+                </button>
+              )}
             </div>
           ))
         )}

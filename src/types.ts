@@ -21,6 +21,7 @@ export interface RequestEntry {
 }
 
 export interface TeamMember {
+  team: string;
   name: string;
   orderNo: number;
   joinedAt: number; // epoch millis

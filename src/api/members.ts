@@ -3,6 +3,7 @@ import type { TeamMember } from "../types";
 
 function fromRow(row: any): TeamMember {
   return {
+    team: row.team,
     name: row.name,
     orderNo: row.order_no,
     joinedAt: new Date(row.joined_at).getTime(),
@@ -14,6 +15,21 @@ export async function upsertMember(team: string, name: string, orderNo: number) 
     .from("team_members")
     .upsert({ team, name, order_no: orderNo }, { onConflict: "team,name" });
   if (error) throw error;
+}
+
+export async function deleteMember(team: string, name: string) {
+  const { error } = await supabase.from("team_members").delete().eq("team", team).eq("name", name);
+  if (error) throw error;
+}
+
+export async function fetchAllTeamMembers(): Promise<TeamMember[]> {
+  const { data, error } = await supabase
+    .from("team_members")
+    .select("*")
+    .order("team", { ascending: true })
+    .order("order_no", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
 }
 
 export function subscribeToMembers(
