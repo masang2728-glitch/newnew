@@ -91,14 +91,14 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     return unsubscribe;
   }, [teamName]);
 
-  // 순번 내림차순 정렬에 쓰는 이름→순번 조회표
+  // 순번 오름차순 정렬에 쓰는 이름→순번 조회표
   const orderByName = useMemo(() => {
     const map = new Map<string, number>();
     for (const m of teamRoster) map.set(m.name, m.orderNo);
     return map;
   }, [teamRoster]);
-  const byOrderDesc = (nameA: string, nameB: string) =>
-    (orderByName.get(nameB) ?? -Infinity) - (orderByName.get(nameA) ?? -Infinity);
+  const byOrderAsc = (nameA: string, nameB: string) =>
+    (orderByName.get(nameA) ?? Infinity) - (orderByName.get(nameB) ?? Infinity);
 
   // 휴가 전용 상태
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
@@ -134,7 +134,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   };
 
   const openCategoryPicker = (category: VacationCategory) => {
-    if (category === "공가" || category === "청원") setReasonDraft(reason);
+    if (category === "공가" || category === "청원" || category === "기타") setReasonDraft(reason);
     setCategoryPicker(category);
   };
 
@@ -197,9 +197,9 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const overtimeGroupsForViewingDate = useMemo(() => {
     if (type !== "overtime" || !viewingDate) return null;
     const groups = groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
-    groups.both.sort(byOrderDesc);
-    groups.earlyOnly.sort(byOrderDesc);
-    groups.lateOnly.sort(byOrderDesc);
+    groups.both.sort(byOrderAsc);
+    groups.earlyOnly.sort(byOrderAsc);
+    groups.lateOnly.sort(byOrderAsc);
     return groups;
   }, [type, viewingDate, entriesByDate, orderByName]);
 
@@ -642,7 +642,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
               (entriesByDate[viewingDate]?.length ? (
                 entriesByDate[viewingDate]
                   .slice()
-                  .sort((a, b) => byOrderDesc(a.name, b.name))
+                  .sort((a, b) => byOrderAsc(a.name, b.name))
                   .map((e) => (
                     <p key={e.id} className="viewer-name">
                       • {entryLabel(e)}
@@ -661,7 +661,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 ) : (
                   monthlyEntries
                     .slice()
-                    .sort((a, b) => byOrderDesc(a.name, b.name))
+                    .sort((a, b) => byOrderAsc(a.name, b.name))
                     .map((e) => (
                       <div key={e.id} className="agg-row">
                         <div className="agg-row-top">
