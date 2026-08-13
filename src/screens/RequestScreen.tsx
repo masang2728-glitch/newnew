@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
-import type { RequestEntry, RequestType } from "../types";
+import type { RequestEntry, RequestType, TeamMember } from "../types";
 import { subscribeToRequests, createRequest, cancelRequest, setConfirmed } from "../api/requests";
+import { subscribeToMembers } from "../api/members";
 import { isPastDate, todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
 import TimeRangeSlider from "../components/TimeRangeSlider";
@@ -78,6 +79,17 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [applyMonth, setApplyMonth] = useState<string>(todayString().slice(0, 7));
   const [viewMonth, setViewMonth] = useState<string>(todayString().slice(0, 7));
+
+  // 관리자가 팀원을 대신해 신청할 때 쓰는 대상자 선택
+  const [applicantName, setApplicantName] = useState(userName ?? "");
+  const [teamRoster, setTeamRoster] = useState<TeamMember[]>([]);
+  const applicant = isAdmin ? applicantName : (userName ?? "");
+
+  useEffect(() => {
+    if (!isAdmin || !teamName) return;
+    const unsubscribe = subscribeToMembers(teamName, setTeamRoster);
+    return unsubscribe;
+  }, [isAdmin, teamName]);
 
   // 휴가 전용 상태
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
@@ -192,8 +204,8 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   }, [viewMonth]);
 
   const myDatesAlready = useMemo(
-    () => new Set(entries.filter((e) => e.name === userName).map((e) => e.date)),
-    [entries, userName]
+    () => new Set(entries.filter((e) => e.name === applicant).map((e) => e.date)),
+    [entries, applicant]
   );
 
   const handleDayClick = (dateString: string) => {
@@ -238,7 +250,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!userName || !teamName) return;
+    if (!applicant || !teamName) return;
 
     if (type === "vacation") {
       if (selectedDates.size === 0) {
@@ -263,7 +275,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
       setSubmitting(true);
       try {
         for (const date of selectedDates) {
-          await createRequest(teamName, "vacation", userName, date, {
+          await createRequest(teamName, "vacation", applicant, date, {
             leaveType: vacationType,
             startTime: startTime || undefined,
             endTime: endTime || undefined,
@@ -271,7 +283,9 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             reason: reason.trim() || undefined,
           });
         }
-        toast.success("휴가 신청이 완료되었습니다.");
+        toast.success(
+          isAdmin && applicant !== userName ? `${applicant}님 휴가 신청이 완료되었습니다.` : "휴가 신청이 완료되었습니다."
+        );
         setSelectedDates(new Set());
         setVacationType(null);
         setStartTime("");
@@ -301,10 +315,12 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
           const choice = overtimeSelections[date];
           const subTypes: OvertimeSubType[] = choice === "둘다" ? ["조출", "야근"] : [choice];
           for (const subType of subTypes) {
-            await createRequest(teamName, "overtime", userName, date, { subType });
+            await createRequest(teamName, "overtime", applicant, date, { subType });
           }
         }
-        toast.success("야근 신청이 완료되었습니다.");
+        toast.success(
+          isAdmin && applicant !== userName ? `${applicant}님 야근 신청이 완료되었습니다.` : "야근 신청이 완료되었습니다."
+        );
         setOvertimeSelections({});
       } catch {
         toast.error("신청 중 오류가 발생했습니다.");
@@ -374,6 +390,25 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
       <div className="content">
         {tab === "apply" ? (
           <>
+            {isAdmin && (
+              <>
+                <div className="field-label">신청 대상</div>
+                <select
+                  className="text-field"
+                  value={applicantName}
+                  onChange={(e) => setApplicantName(e.target.value)}
+                >
+                  {teamRoster.length === 0 && userName && <option value={userName}>{userName}</option>}
+                  {teamRoster.map((m) => (
+                    <option key={m.name} value={m.name}>
+                      {m.name}
+                      {m.name === userName ? " (본인)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
             <MonthCalendar
               month={applyMonth}
               onMonthChange={setApplyMonth}
