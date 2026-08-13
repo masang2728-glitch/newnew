@@ -86,10 +86,19 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const applicant = isAdmin ? applicantName : (userName ?? "");
 
   useEffect(() => {
-    if (!isAdmin || !teamName) return;
+    if (!teamName) return;
     const unsubscribe = subscribeToMembers(teamName, setTeamRoster);
     return unsubscribe;
-  }, [isAdmin, teamName]);
+  }, [teamName]);
+
+  // 순번 내림차순 정렬에 쓰는 이름→순번 조회표
+  const orderByName = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const m of teamRoster) map.set(m.name, m.orderNo);
+    return map;
+  }, [teamRoster]);
+  const byOrderDesc = (nameA: string, nameB: string) =>
+    (orderByName.get(nameB) ?? -Infinity) - (orderByName.get(nameA) ?? -Infinity);
 
   // 휴가 전용 상태
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
@@ -176,14 +185,23 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
 
   const countByDate = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const d of Object.keys(entriesByDate)) map[d] = entriesByDate[d].length;
+    for (const d of Object.keys(entriesByDate)) {
+      map[d] =
+        type === "overtime"
+          ? new Set(entriesByDate[d].map((e) => e.name)).size
+          : entriesByDate[d].length;
+    }
     return map;
-  }, [entriesByDate]);
+  }, [entriesByDate, type]);
 
   const overtimeGroupsForViewingDate = useMemo(() => {
     if (type !== "overtime" || !viewingDate) return null;
-    return groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
-  }, [type, viewingDate, entriesByDate]);
+    const groups = groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
+    groups.both.sort(byOrderDesc);
+    groups.earlyOnly.sort(byOrderDesc);
+    groups.lateOnly.sort(byOrderDesc);
+    return groups;
+  }, [type, viewingDate, entriesByDate, orderByName]);
 
   const applySelectedSet = useMemo(
     () => (type === "vacation" ? selectedDates : new Set(Object.keys(overtimeSelections))),
@@ -622,11 +640,14 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             ) : (
               viewingDate &&
               (entriesByDate[viewingDate]?.length ? (
-                entriesByDate[viewingDate].map((e) => (
-                  <p key={e.id} className="viewer-name">
-                    • {entryLabel(e)}
-                  </p>
-                ))
+                entriesByDate[viewingDate]
+                  .slice()
+                  .sort((a, b) => byOrderDesc(a.name, b.name))
+                  .map((e) => (
+                    <p key={e.id} className="viewer-name">
+                      • {entryLabel(e)}
+                    </p>
+                  ))
               ) : (
                 <p className="empty-text">신청자가 없습니다.</p>
               ))
@@ -640,7 +661,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 ) : (
                   monthlyEntries
                     .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1))
+                    .sort((a, b) => byOrderDesc(a.name, b.name))
                     .map((e) => (
                       <div key={e.id} className="agg-row">
                         <div className="agg-row-top">

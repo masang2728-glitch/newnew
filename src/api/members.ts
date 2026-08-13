@@ -27,7 +27,7 @@ export async function fetchAllTeamMembers(): Promise<TeamMember[]> {
     .from("team_members")
     .select("*")
     .order("team", { ascending: true })
-    .order("order_no", { ascending: true });
+    .order("order_no", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(fromRow);
 }
@@ -44,7 +44,7 @@ export function subscribeToMembers(
       .from("team_members")
       .select("*")
       .eq("team", team)
-      .order("order_no", { ascending: true });
+      .order("order_no", { ascending: false });
     if (cancelled) return;
     if (error) {
       onError?.(error);
