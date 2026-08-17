@@ -30,33 +30,23 @@ type Tab = "apply" | "calendar";
 type OvertimeChoice = OvertimeSubType | "둘다";
 
 interface OvertimeGroups {
-  both: string[];
-  earlyOnly: string[];
-  lateOnly: string[];
+  early: string[];
+  late: string[];
 }
 
 function groupOvertimeByPerson(dayEntries: RequestEntry[]): OvertimeGroups {
-  const byName = new Map<string, Set<OvertimeSubType>>();
+  const earlyNames = new Set<string>();
+  const lateNames = new Set<string>();
   for (const e of dayEntries) {
-    if (!e.subType) continue;
-    if (!byName.has(e.name)) byName.set(e.name, new Set());
-    byName.get(e.name)!.add(e.subType);
+    if (e.subType === "조출") earlyNames.add(e.name);
+    else if (e.subType === "야근") lateNames.add(e.name);
   }
-  const groups: OvertimeGroups = { both: [], earlyOnly: [], lateOnly: [] };
-  for (const [name, subTypes] of byName) {
-    const hasEarly = subTypes.has("조출");
-    const hasLate = subTypes.has("야근");
-    if (hasEarly && hasLate) groups.both.push(name);
-    else if (hasEarly) groups.earlyOnly.push(name);
-    else if (hasLate) groups.lateOnly.push(name);
-  }
-  return groups;
+  return { early: [...earlyNames], late: [...lateNames] };
 }
 
 const OVERTIME_GROUP_ORDER: { key: keyof OvertimeGroups; emoji: string; label: string }[] = [
-  { key: "both", emoji: "🔶", label: "조출 + 야근 둘 다" },
-  { key: "earlyOnly", emoji: "🌅", label: "조출만" },
-  { key: "lateOnly", emoji: "🌙", label: "야근만" },
+  { key: "early", emoji: "🌅", label: "조출" },
+  { key: "late", emoji: "🌙", label: "야근" },
 ];
 
 function entryLabel(entry: RequestEntry): string {
@@ -209,9 +199,8 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const overtimeGroupsForViewingDate = useMemo(() => {
     if (type !== "overtime" || !viewingDate) return null;
     const groups = groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
-    groups.both.sort(byOrderAsc);
-    groups.earlyOnly.sort(byOrderAsc);
-    groups.lateOnly.sort(byOrderAsc);
+    groups.early.sort(byOrderAsc);
+    groups.late.sort(byOrderAsc);
     return groups;
   }, [type, viewingDate, entriesByDate, orderByName]);
 
@@ -641,10 +630,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
               {viewingDate ? `${viewingDate} 신청자` : "날짜를 선택해주세요"}
             </div>
             {viewingDate && overtimeGroupsForViewingDate ? (
-              overtimeGroupsForViewingDate.both.length +
-                overtimeGroupsForViewingDate.earlyOnly.length +
-                overtimeGroupsForViewingDate.lateOnly.length ===
-              0 ? (
+              overtimeGroupsForViewingDate.early.length + overtimeGroupsForViewingDate.late.length === 0 ? (
                 <p className="empty-text">신청자가 없습니다.</p>
               ) : (
                 <div className="overtime-groups">
