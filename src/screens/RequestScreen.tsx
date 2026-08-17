@@ -194,6 +194,18 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     return map;
   }, [entriesByDate, type]);
 
+  const overtimeSplitCountByDate = useMemo(() => {
+    if (type !== "overtime") return undefined;
+    const map: Record<string, { early: number; late: number }> = {};
+    for (const d of Object.keys(entriesByDate)) {
+      const dayEntries = entriesByDate[d];
+      const early = new Set(dayEntries.filter((e) => e.subType === "조출").map((e) => e.name)).size;
+      const late = new Set(dayEntries.filter((e) => e.subType === "야근").map((e) => e.name)).size;
+      map[d] = { early, late };
+    }
+    return map;
+  }, [entriesByDate, type]);
+
   const overtimeGroupsForViewingDate = useMemo(() => {
     if (type !== "overtime" || !viewingDate) return null;
     const groups = groupOvertimeByPerson(entriesByDate[viewingDate] ?? []);
@@ -221,10 +233,16 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     return `${y}년 ${Number(m)}월`;
   }, [viewMonth]);
 
-  const myDatesAlready = useMemo(
-    () => new Set(entries.filter((e) => e.name === applicant).map((e) => e.date)),
-    [entries, applicant]
-  );
+  // "날짜__유형" 단위로 중복을 판단해서, 같은 날짜라도 유형이 다르면(예: 오전 외출 + 오후 공가) 신청할 수 있게 한다.
+  const myTakenKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) {
+      if (e.name !== applicant) continue;
+      const t = type === "vacation" ? e.leaveType : e.subType;
+      if (t) set.add(`${e.date}__${t}`);
+    }
+    return set;
+  }, [entries, applicant, type]);
 
   const handleDayClick = (dateString: string) => {
     if (isPastDate(dateString)) {
@@ -284,9 +302,9 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
         toast.error(`${vacationType} 사유를 입력해주세요.`);
         return;
       }
-      const duplicates = [...selectedDates].filter((d) => myDatesAlready.has(d));
+      const duplicates = [...selectedDates].filter((d) => myTakenKeys.has(`${d}__${vacationType}`));
       if (duplicates.length > 0) {
-        toast.error(`이미 신청한 날짜가 포함되어 있습니다. (${duplicates.join(", ")})`);
+        toast.error(`이미 같은 유형(${vacationType})으로 신청한 날짜가 포함되어 있습니다. (${duplicates.join(", ")})`);
         return;
       }
 
@@ -321,17 +339,25 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
         toast.error("날짜를 하나 이상 선택해주세요.");
         return;
       }
-      const duplicates = dates.filter((d) => myDatesAlready.has(d));
+      const subTypesByDate = new Map<string, OvertimeSubType[]>();
+      for (const d of dates) {
+        const choice = overtimeSelections[d];
+        subTypesByDate.set(d, choice === "둘다" ? ["조출", "야근"] : [choice]);
+      }
+      const duplicates: string[] = [];
+      for (const [d, subTypes] of subTypesByDate) {
+        for (const st of subTypes) {
+          if (myTakenKeys.has(`${d}__${st}`)) duplicates.push(`${d}(${st})`);
+        }
+      }
       if (duplicates.length > 0) {
-        toast.error(`이미 신청한 날짜가 포함되어 있습니다. (${duplicates.join(", ")})`);
+        toast.error(`이미 같은 유형으로 신청한 날짜가 포함되어 있습니다. (${duplicates.join(", ")})`);
         return;
       }
 
       setSubmitting(true);
       try {
-        for (const date of dates) {
-          const choice = overtimeSelections[date];
-          const subTypes: OvertimeSubType[] = choice === "둘다" ? ["조출", "야근"] : [choice];
+        for (const [date, subTypes] of subTypesByDate) {
           for (const subType of subTypes) {
             await createRequest(teamName, "overtime", applicant, date, { subType });
           }
@@ -592,11 +618,22 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 총 {monthlyEntries.length}건 · {monthlyHeadcount}명
               </span>
             </div>
+            {type === "overtime" && (
+              <div className="calendar-legend">
+                <span className="calendar-legend-item">
+                  <span className="calendar-legend-dot calendar-split-early" /> 조출 인원
+                </span>
+                <span className="calendar-legend-item">
+                  <span className="calendar-legend-dot calendar-split-late" /> 야근 인원
+                </span>
+              </div>
+            )}
             <MonthCalendar
               month={viewMonth}
               onMonthChange={setViewMonth}
               singleSelectedDate={viewingDate}
               countByDate={countByDate}
+              splitCountByDate={overtimeSplitCountByDate}
               onDayClick={setViewingDate}
               themeColor={themeColor}
             />

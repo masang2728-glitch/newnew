@@ -275,6 +275,26 @@ button, input {
 }
 .calendar-day-disabled { color: #cbd5e1; cursor: not-allowed; }
 .calendar-day-today { font-weight: 800; }
+.calendar-split-badge { display: flex; gap: 2px; margin-top: 2px; }
+.calendar-split-badge span {
+  min-width: 14px;
+  height: 16px;
+  border-radius: 8px;
+  padding: 0 3px;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.calendar-split-early { background: #fb923c; }
+.calendar-split-late { background: #c2410c; }
+
+.calendar-legend { display: flex; gap: 14px; margin-bottom: 8px; }
+.calendar-legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #64748b; }
+.calendar-legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
 .calendar-count-badge {
   min-width: 16px;
   height: 16px;

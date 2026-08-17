@@ -6,6 +6,11 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const SATURDAY_COLOR = "#2563EB";
 const SUNDAY_HOLIDAY_COLOR = "#DC2626";
 
+interface SplitCount {
+  early: number;
+  late: number;
+}
+
 interface MonthCalendarProps {
   month: string; // "YYYY-MM"
   onMonthChange: (month: string) => void;
@@ -13,6 +18,7 @@ interface MonthCalendarProps {
   selectedDates?: Set<string>;
   singleSelectedDate?: string | null;
   countByDate?: Record<string, number>;
+  splitCountByDate?: Record<string, SplitCount>;
   onDayClick: (dateString: string) => void;
   themeColor: string;
 }
@@ -24,6 +30,7 @@ export default function MonthCalendar({
   selectedDates,
   singleSelectedDate,
   countByDate,
+  splitCountByDate,
   onDayClick,
   themeColor,
 }: MonthCalendarProps) {
@@ -70,6 +77,7 @@ export default function MonthCalendar({
           const isSelected = selectedDates?.has(dateString) || singleSelectedDate === dateString;
           const isToday = dateString === today;
           const count = countByDate?.[dateString] ?? 0;
+          const split = splitCountByDate?.[dateString];
           const dow = date.getDay(); // 0=Sun..6=Sat
           const holidayName = getHolidayName(dateString);
 
@@ -99,10 +107,20 @@ export default function MonthCalendar({
               >
                 {date.getDate()}
               </button>
-              {count > 0 && (
-                <span className="calendar-count-badge" style={{ backgroundColor: themeColor }}>
-                  {count}
-                </span>
+              {splitCountByDate ? (
+                split &&
+                (split.early > 0 || split.late > 0) && (
+                  <div className="calendar-split-badge">
+                    {split.early > 0 && <span className="calendar-split-early">{split.early}</span>}
+                    {split.late > 0 && <span className="calendar-split-late">{split.late}</span>}
+                  </div>
+                )
+              ) : (
+                count > 0 && (
+                  <span className="calendar-count-badge" style={{ backgroundColor: themeColor }}>
+                    {count}
+                  </span>
+                )
               )}
             </div>
           );
