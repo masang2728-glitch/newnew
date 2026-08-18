@@ -176,13 +176,10 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const countByDate = useMemo(() => {
     const map: Record<string, number> = {};
     for (const d of Object.keys(entriesByDate)) {
-      map[d] =
-        type === "overtime"
-          ? new Set(entriesByDate[d].map((e) => e.name)).size
-          : entriesByDate[d].length;
+      map[d] = new Set(entriesByDate[d].map((e) => e.name)).size;
     }
     return map;
-  }, [entriesByDate, type]);
+  }, [entriesByDate]);
 
   const overtimeSplitCountByDate = useMemo(() => {
     if (type !== "overtime") return undefined;
