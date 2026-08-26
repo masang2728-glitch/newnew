@@ -164,14 +164,20 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     [entries, userName, isAdmin]
   );
 
+  // 캘린더 집계는 관리자가 확인한 휴가 신청만 반영한다 (야근은 기존대로 전체 반영).
+  const calendarEntries = useMemo(
+    () => (type === "vacation" ? entries.filter((e) => e.confirmedAt) : entries),
+    [entries, type]
+  );
+
   const entriesByDate = useMemo(() => {
     const map: Record<string, RequestEntry[]> = {};
-    for (const e of entries) {
+    for (const e of calendarEntries) {
       if (!map[e.date]) map[e.date] = [];
       map[e.date].push(e);
     }
     return map;
-  }, [entries]);
+  }, [calendarEntries]);
 
   const countByDate = useMemo(() => {
     const map: Record<string, number> = {};
@@ -207,8 +213,8 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   );
 
   const monthlyEntries = useMemo(
-    () => entries.filter((e) => e.date.startsWith(viewMonth)),
-    [entries, viewMonth]
+    () => calendarEntries.filter((e) => e.date.startsWith(viewMonth)),
+    [calendarEntries, viewMonth]
   );
   const monthlyHeadcount = useMemo(
     () => new Set(monthlyEntries.map((e) => e.name)).size,
@@ -604,6 +610,11 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 총 {monthlyEntries.length}건 · {monthlyHeadcount}명
               </span>
             </div>
+            {type === "vacation" && (
+              <p className="empty-text" style={{ marginTop: -8, marginBottom: 12 }}>
+                * 관리자가 확인한 신청만 캘린더에 집계됩니다.
+              </p>
+            )}
             {type === "overtime" && (
               <div className="calendar-legend">
                 <span className="calendar-legend-item">
@@ -681,7 +692,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 ) : (
                   monthlyEntries
                     .slice()
-                    .sort((a, b) => byOrderAsc(a.name, b.name))
+                    .sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : byOrderAsc(a.name, b.name)))
                     .map((e) => (
                       <div key={e.id} className="agg-row">
                         <div className="agg-row-top">
