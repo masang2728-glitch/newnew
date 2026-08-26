@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { ADMIN_PIN, SUPER_ADMIN_PIN } from "../constants";
+import { ADMIN_PIN, SUPER_ADMIN_PIN, DASHBOARD_PIN } from "../constants";
 
 const NAME_KEY = "session:userName";
 const TEAM_KEY = "session:teamName";
 const ORDER_KEY = "session:orderNo";
 const ADMIN_KEY = "session:isAdmin";
 const SUPER_ADMIN_KEY = "session:isSuperAdmin";
+const DASHBOARD_ADMIN_KEY = "session:isDashboardAdmin";
 
 interface SessionContextValue {
   userName: string | null;
@@ -13,6 +14,7 @@ interface SessionContextValue {
   orderNo: number | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isDashboardAdmin: boolean;
   isLoading: boolean;
   login: (
     name: string,
@@ -21,6 +23,7 @@ interface SessionContextValue {
     pin: string
   ) => { ok: true } | { ok: false; error: string };
   loginSuperAdmin: (code: string) => { ok: true } | { ok: false; error: string };
+  loginDashboardAdmin: (code: string) => { ok: true } | { ok: false; error: string };
   logout: () => void;
 }
 
@@ -32,6 +35,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [orderNo, setOrderNo] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isDashboardAdmin, setIsDashboardAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setOrderNo(storedOrder ? Number(storedOrder) : null);
     setIsAdmin(localStorage.getItem(ADMIN_KEY) === "true");
     setIsSuperAdmin(localStorage.getItem(SUPER_ADMIN_KEY) === "true");
+    setIsDashboardAdmin(localStorage.getItem(DASHBOARD_ADMIN_KEY) === "true");
     setIsLoading(false);
   }, []);
 
@@ -74,22 +79,45 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return { ok: true as const };
   };
 
+  const loginDashboardAdmin = (code: string) => {
+    if (code.trim() !== DASHBOARD_PIN) {
+      return { ok: false as const, error: "현황판 암호가 올바르지 않습니다." };
+    }
+    localStorage.setItem(DASHBOARD_ADMIN_KEY, "true");
+    setIsDashboardAdmin(true);
+    return { ok: true as const };
+  };
+
   const logout = () => {
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(TEAM_KEY);
     localStorage.removeItem(ORDER_KEY);
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(SUPER_ADMIN_KEY);
+    localStorage.removeItem(DASHBOARD_ADMIN_KEY);
     setUserName(null);
     setTeamName(null);
     setOrderNo(null);
     setIsAdmin(false);
     setIsSuperAdmin(false);
+    setIsDashboardAdmin(false);
   };
 
   return (
     <SessionContext.Provider
-      value={{ userName, teamName, orderNo, isAdmin, isSuperAdmin, isLoading, login, loginSuperAdmin, logout }}
+      value={{
+        userName,
+        teamName,
+        orderNo,
+        isAdmin,
+        isSuperAdmin,
+        isDashboardAdmin,
+        isLoading,
+        login,
+        loginSuperAdmin,
+        loginDashboardAdmin,
+        logout,
+      }}
     >
       {children}
     </SessionContext.Provider>

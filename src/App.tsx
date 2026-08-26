@@ -7,6 +7,7 @@ import RequestScreen from "./screens/RequestScreen";
 import SuperAdminScreen from "./screens/SuperAdminScreen";
 import AppInfoScreen from "./screens/AppInfoScreen";
 import TeamMembersScreen from "./screens/TeamMembersScreen";
+import StatusDashboardScreen from "./screens/StatusDashboardScreen";
 
 function RequireSession({ children }: { children: React.ReactNode }) {
   const { userName, teamName, isLoading } = useSession();
@@ -22,10 +23,18 @@ function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireDashboardAdmin({ children }: { children: React.ReactNode }) {
+  const { isDashboardAdmin, isLoading } = useSession();
+  if (isLoading) return null;
+  if (!isDashboardAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function RootRedirect() {
-  const { userName, teamName, isSuperAdmin, isLoading } = useSession();
+  const { userName, teamName, isSuperAdmin, isDashboardAdmin, isLoading } = useSession();
   if (isLoading) return null;
   if (isSuperAdmin) return <Navigate to="/super-admin" replace />;
+  if (isDashboardAdmin) return <Navigate to="/status-dashboard" replace />;
   if (userName && teamName) return <Navigate to="/main" replace />;
   return <NameEntryScreen />;
 }
@@ -82,6 +91,14 @@ function App() {
               <RequireSuperAdmin>
                 <SuperAdminScreen />
               </RequireSuperAdmin>
+            }
+          />
+          <Route
+            path="/status-dashboard"
+            element={
+              <RequireDashboardAdmin>
+                <StatusDashboardScreen />
+              </RequireDashboardAdmin>
             }
           />
         </Routes>
