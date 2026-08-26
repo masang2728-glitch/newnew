@@ -67,6 +67,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [entries, setEntries] = useState<RequestEntry[]>([]);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<RequestEntry | null>(null);
   const [applyMonth, setApplyMonth] = useState<string>(todayString().slice(0, 7));
   const [viewMonth, setViewMonth] = useState<string>(todayString().slice(0, 7));
 
@@ -375,13 +376,18 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     }
   };
 
-  const handleCancel = async (entry: RequestEntry) => {
+  const handleCancel = (entry: RequestEntry) => {
     const allowed = entry.name === userName || isAdmin;
     if (!allowed) return;
-    const label = isAdmin && entry.name !== userName ? `${entry.name}님의 ` : "";
-    if (!window.confirm(`${label}${entry.date} 신청을 취소할까요?`)) return;
+    setCancelTarget(entry);
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    const target = cancelTarget;
+    setCancelTarget(null);
     try {
-      await cancelRequest(type, entry.id);
+      await cancelRequest(type, target.id);
       toast.success("취소되었습니다.");
     } catch {
       toast.error("취소 중 오류가 발생했습니다.");
@@ -804,6 +810,27 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {cancelTarget && (
+        <div className="modal-backdrop" onClick={() => setCancelTarget(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">
+              {cancelTarget.name}님의 {cancelTarget.date} {title} 신청을 삭제합니다
+            </div>
+            <button
+              type="button"
+              className="modal-option"
+              style={{ backgroundColor: "#ef4444", borderColor: "#ef4444", color: "#fff" }}
+              onClick={confirmCancel}
+            >
+              삭제
+            </button>
+            <button type="button" className="modal-cancel" onClick={() => setCancelTarget(null)}>
+              닫기
+            </button>
           </div>
         </div>
       )}
