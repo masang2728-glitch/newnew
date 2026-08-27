@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../session/SessionContext";
 import { subscribePendingCount } from "../api/requests";
@@ -8,8 +8,6 @@ export default function MainScreen() {
   const navigate = useNavigate();
   const [pendingVacation, setPendingVacation] = useState(0);
   const [pendingOvertime, setPendingOvertime] = useState(0);
-  const [showPendingModal, setShowPendingModal] = useState(false);
-  const hasAlertedRef = useRef(false);
 
   useEffect(() => {
     if (!isAdmin || !teamName) return;
@@ -20,14 +18,6 @@ export default function MainScreen() {
       unsubOvertime();
     };
   }, [isAdmin, teamName]);
-
-  useEffect(() => {
-    if (!isAdmin || hasAlertedRef.current) return;
-    if (pendingVacation + pendingOvertime > 0) {
-      setShowPendingModal(true);
-      hasAlertedRef.current = true;
-    }
-  }, [isAdmin, pendingVacation, pendingOvertime]);
 
   const handleLogout = () => {
     logout();
@@ -71,46 +61,6 @@ export default function MainScreen() {
           앱 정보
         </button>
       </div>
-
-      {showPendingModal && (
-        <div className="modal-backdrop" onClick={() => setShowPendingModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">확인하지 않은 신청이 있어요</div>
-            <p className="empty-text" style={{ marginBottom: 16 }}>
-              {[
-                pendingVacation > 0 ? `휴가 신청 ${pendingVacation}건` : null,
-                pendingOvertime > 0 ? `야근 신청 ${pendingOvertime}건` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-              이 아직 확인되지 않았습니다.
-            </p>
-            {pendingVacation > 0 && (
-              <button
-                type="button"
-                className="modal-option"
-                style={{ borderColor: "#2563EB", color: "#2563EB" }}
-                onClick={() => navigate("/vacation")}
-              >
-                휴가 신청 확인하러 가기
-              </button>
-            )}
-            {pendingOvertime > 0 && (
-              <button
-                type="button"
-                className="modal-option"
-                style={{ borderColor: "#F97316", color: "#F97316" }}
-                onClick={() => navigate("/overtime")}
-              >
-                야근 신청 확인하러 가기
-              </button>
-            )}
-            <button type="button" className="modal-cancel" onClick={() => setShowPendingModal(false)}>
-              나중에 확인할게요
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

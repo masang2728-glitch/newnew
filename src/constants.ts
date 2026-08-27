@@ -5,9 +5,6 @@ export const ADMIN_PIN = "2957";
 // 최고관리자(앱 전체 현황 조회/팀 삭제) 전용 암호. 팀 관리자 암호와는 별개입니다.
 export const SUPER_ADMIN_PIN = "2728";
 
-// 여러 팀을 선택해서 표 형태 현황판을 보는 대시보드 전용 암호. 위 두 암호와는 별개입니다.
-export const DASHBOARD_PIN = "a2957";
-
 export const APP_CREATED_AT = "2026-07-30";
 export const APP_AUTHOR = "윤상경";
 

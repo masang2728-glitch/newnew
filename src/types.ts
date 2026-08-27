@@ -4,7 +4,6 @@ export type RequestType = "vacation" | "overtime";
 
 export interface RequestEntry {
   id: string;
-  team: string;
   name: string;
   date: string; // "YYYY-MM-DD"
   createdAt: number; // epoch millis

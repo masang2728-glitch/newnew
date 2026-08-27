@@ -8,7 +8,6 @@ function tableName(type: RequestType) {
 function fromRow(row: any): RequestEntry {
   return {
     id: row.id,
-    team: row.team,
     name: row.name,
     date: row.date,
     createdAt: new Date(row.created_at).getTime(),
@@ -102,13 +101,6 @@ export async function setConfirmed(
     : { confirmed_at: null, confirmed_by: null };
   const { error } = await supabase.from(tableName(type)).update(payload).eq("id", id);
   if (error) throw error;
-}
-
-// 최고관리자용 현황판: 팀 구분 없이 특정 날짜의 휴가 신청을 전부 가져온다.
-export async function fetchVacationRequestsByDate(date: string): Promise<RequestEntry[]> {
-  const { data, error } = await supabase.from("vacation_requests").select("*").eq("date", date);
-  if (error) throw error;
-  return (data ?? []).map(fromRow);
 }
 
 export function subscribePendingCount(

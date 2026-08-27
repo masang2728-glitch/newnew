@@ -5,7 +5,7 @@ import { useSession } from "../session/SessionContext";
 import { upsertMember } from "../api/members";
 
 export default function NameEntryScreen() {
-  const { login, loginSuperAdmin, loginDashboardAdmin } = useSession();
+  const { login, loginSuperAdmin } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [orderNo, setOrderNo] = useState("");
@@ -16,9 +16,6 @@ export default function NameEntryScreen() {
 
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const [superAdminCode, setSuperAdminCode] = useState("");
-
-  const [showDashboardAdmin, setShowDashboardAdmin] = useState(false);
-  const [dashboardCode, setDashboardCode] = useState("");
 
   const handleEnter = async () => {
     if (!name.trim()) {
@@ -65,19 +62,6 @@ export default function NameEntryScreen() {
 
   const onSuperAdminKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSuperAdminEnter();
-  };
-
-  const handleDashboardAdminEnter = () => {
-    const result = loginDashboardAdmin(dashboardCode);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    navigate("/status-dashboard", { replace: true });
-  };
-
-  const onDashboardAdminKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleDashboardAdminEnter();
   };
 
   return (
@@ -150,32 +134,6 @@ export default function NameEntryScreen() {
           ) : (
             <button type="button" className="entry-admin-link" onClick={() => setShowSuperAdmin(true)}>
               최고관리자이신가요?
-            </button>
-          )}
-        </div>
-
-        <div className="super-admin-block">
-          {showDashboardAdmin ? (
-            <>
-              <input
-                className="entry-input"
-                placeholder="현황판 암호"
-                type="password"
-                value={dashboardCode}
-                onChange={(e) => setDashboardCode(e.target.value)}
-                onKeyDown={onDashboardAdminKeyDown}
-              />
-              <button
-                type="button"
-                className="entry-button entry-button-secondary"
-                onClick={handleDashboardAdminEnter}
-              >
-                현황판 입장
-              </button>
-            </>
-          ) : (
-            <button type="button" className="entry-admin-link" onClick={() => setShowDashboardAdmin(true)}>
-              전체 현황판이 필요하신가요?
             </button>
           )}
         </div>
