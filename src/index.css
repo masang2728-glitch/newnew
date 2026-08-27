@@ -644,6 +644,9 @@ button, input {
 .team-row-block .team-row { padding: 0 0 8px; border-bottom: none; }
 .roster-box { margin-top: 8px; }
 
+.factory-assign-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.factory-assign-row .text-field { margin-top: 0; }
+
 /* ---------- Modal ---------- */
 .modal-backdrop {
   position: fixed;

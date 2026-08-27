@@ -7,6 +7,7 @@ import RequestScreen from "./screens/RequestScreen";
 import SuperAdminScreen from "./screens/SuperAdminScreen";
 import AppInfoScreen from "./screens/AppInfoScreen";
 import TeamMembersScreen from "./screens/TeamMembersScreen";
+import FactoryDashboardScreen from "./screens/FactoryDashboardScreen";
 
 function RequireSession({ children }: { children: React.ReactNode }) {
   const { userName, teamName, isLoading } = useSession();
@@ -22,10 +23,18 @@ function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireFactoryAdmin({ children }: { children: React.ReactNode }) {
+  const { factoryName, isLoading } = useSession();
+  if (isLoading) return null;
+  if (!factoryName) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function RootRedirect() {
-  const { userName, teamName, isSuperAdmin, isLoading } = useSession();
+  const { userName, teamName, isSuperAdmin, factoryName, isLoading } = useSession();
   if (isLoading) return null;
   if (isSuperAdmin) return <Navigate to="/super-admin" replace />;
+  if (factoryName) return <Navigate to="/factory-dashboard" replace />;
   if (userName && teamName) return <Navigate to="/main" replace />;
   return <NameEntryScreen />;
 }
@@ -82,6 +91,14 @@ function App() {
               <RequireSuperAdmin>
                 <SuperAdminScreen />
               </RequireSuperAdmin>
+            }
+          />
+          <Route
+            path="/factory-dashboard"
+            element={
+              <RequireFactoryAdmin>
+                <FactoryDashboardScreen />
+              </RequireFactoryAdmin>
             }
           />
         </Routes>

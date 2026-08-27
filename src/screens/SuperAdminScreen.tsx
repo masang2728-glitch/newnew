@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import { fetchAppSummary, deleteTeam, type AppSummary } from "../api/admin";
 import { fetchAllTeamMembers } from "../api/members";
+import { fetchOrgGroups, setTeamFactory } from "../api/orgGroups";
 import type { TeamMember } from "../types";
 
 function formatDate(ms: number): string {
@@ -17,6 +18,9 @@ export default function SuperAdminScreen() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState<AppSummary | null>(null);
   const [membersByTeam, setMembersByTeam] = useState<Record<string, TeamMember[]>>({});
+  const [factoryByTeam, setFactoryByTeam] = useState<Record<string, string>>({});
+  const [factoryDrafts, setFactoryDrafts] = useState<Record<string, string>>({});
+  const [savingFactory, setSavingFactory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingTeam, setDeletingTeam] = useState<string | null>(null);
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
@@ -24,7 +28,11 @@ export default function SuperAdminScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryData, allMembers] = await Promise.all([fetchAppSummary(), fetchAllTeamMembers()]);
+      const [summaryData, allMembers, orgGroups] = await Promise.all([
+        fetchAppSummary(),
+        fetchAllTeamMembers(),
+        fetchOrgGroups(),
+      ]);
       setSummary(summaryData);
       const grouped: Record<string, TeamMember[]> = {};
       for (const m of allMembers) {
@@ -32,6 +40,9 @@ export default function SuperAdminScreen() {
         grouped[m.team].push(m);
       }
       setMembersByTeam(grouped);
+      const factoryMap: Record<string, string> = {};
+      for (const g of orgGroups) factoryMap[g.team] = g.factory;
+      setFactoryByTeam(factoryMap);
     } catch {
       toast.error("현황을 불러오지 못했습니다.");
     } finally {
@@ -66,6 +77,24 @@ export default function SuperAdminScreen() {
       toast.error("삭제 중 오류가 발생했습니다.");
     } finally {
       setDeletingTeam(null);
+    }
+  };
+
+  const handleSaveFactory = async (teamName: string) => {
+    const factory = (factoryDrafts[teamName] ?? factoryByTeam[teamName] ?? "").trim();
+    if (!factory) {
+      toast.error("소속 공장명을 입력해주세요.");
+      return;
+    }
+    setSavingFactory(teamName);
+    try {
+      await setTeamFactory(teamName, factory);
+      setFactoryByTeam((prev) => ({ ...prev, [teamName]: factory }));
+      toast.success(`"${teamName}" 팀을 "${factory}" 소속으로 저장했습니다.`);
+    } catch {
+      toast.error("저장 중 오류가 발생했습니다.");
+    } finally {
+      setSavingFactory(null);
     }
   };
 
@@ -145,6 +174,24 @@ export default function SuperAdminScreen() {
                         onClick={() => handleDelete(teamName)}
                       >
                         {deletingTeam === teamName ? "삭제 중..." : "팀 삭제"}
+                      </button>
+                    </div>
+                    <div className="factory-assign-row">
+                      <input
+                        className="text-field"
+                        placeholder="소속 공장 (예: 전차공장)"
+                        value={factoryDrafts[teamName] ?? factoryByTeam[teamName] ?? ""}
+                        onChange={(e) =>
+                          setFactoryDrafts((prev) => ({ ...prev, [teamName]: e.target.value }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="inline-edit-link"
+                        disabled={savingFactory === teamName}
+                        onClick={() => handleSaveFactory(teamName)}
+                      >
+                        {savingFactory === teamName ? "저장 중..." : "저장"}
                       </button>
                     </div>
                     <button

@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { ADMIN_PIN, SUPER_ADMIN_PIN } from "../constants";
+import { ADMIN_PIN, SUPER_ADMIN_PIN, FACTORY_ADMIN_PIN } from "../constants";
 
 const NAME_KEY = "session:userName";
 const TEAM_KEY = "session:teamName";
 const ORDER_KEY = "session:orderNo";
 const ADMIN_KEY = "session:isAdmin";
 const SUPER_ADMIN_KEY = "session:isSuperAdmin";
+const FACTORY_NAME_KEY = "session:factoryName";
 
 interface SessionContextValue {
   userName: string | null;
@@ -13,6 +14,7 @@ interface SessionContextValue {
   orderNo: number | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  factoryName: string | null;
   isLoading: boolean;
   login: (
     name: string,
@@ -21,6 +23,7 @@ interface SessionContextValue {
     pin: string
   ) => { ok: true } | { ok: false; error: string };
   loginSuperAdmin: (code: string) => { ok: true } | { ok: false; error: string };
+  loginFactoryAdmin: (factory: string, code: string) => { ok: true } | { ok: false; error: string };
   logout: () => void;
 }
 
@@ -32,6 +35,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [orderNo, setOrderNo] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [factoryName, setFactoryName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,6 +45,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setOrderNo(storedOrder ? Number(storedOrder) : null);
     setIsAdmin(localStorage.getItem(ADMIN_KEY) === "true");
     setIsSuperAdmin(localStorage.getItem(SUPER_ADMIN_KEY) === "true");
+    setFactoryName(localStorage.getItem(FACTORY_NAME_KEY));
     setIsLoading(false);
   }, []);
 
@@ -74,22 +79,49 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return { ok: true as const };
   };
 
+  const loginFactoryAdmin = (factory: string, code: string) => {
+    const trimmedFactory = factory.trim();
+    if (!trimmedFactory) {
+      return { ok: false as const, error: "공장명을 입력해주세요." };
+    }
+    if (code.trim() !== FACTORY_ADMIN_PIN) {
+      return { ok: false as const, error: "공장관리자 암호가 올바르지 않습니다." };
+    }
+    localStorage.setItem(FACTORY_NAME_KEY, trimmedFactory);
+    setFactoryName(trimmedFactory);
+    return { ok: true as const };
+  };
+
   const logout = () => {
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(TEAM_KEY);
     localStorage.removeItem(ORDER_KEY);
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(SUPER_ADMIN_KEY);
+    localStorage.removeItem(FACTORY_NAME_KEY);
     setUserName(null);
     setTeamName(null);
     setOrderNo(null);
     setIsAdmin(false);
     setIsSuperAdmin(false);
+    setFactoryName(null);
   };
 
   return (
     <SessionContext.Provider
-      value={{ userName, teamName, orderNo, isAdmin, isSuperAdmin, isLoading, login, loginSuperAdmin, logout }}
+      value={{
+        userName,
+        teamName,
+        orderNo,
+        isAdmin,
+        isSuperAdmin,
+        factoryName,
+        isLoading,
+        login,
+        loginSuperAdmin,
+        loginFactoryAdmin,
+        logout,
+      }}
     >
       {children}
     </SessionContext.Provider>

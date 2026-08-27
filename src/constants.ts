@@ -5,6 +5,9 @@ export const ADMIN_PIN = "2957";
 // 최고관리자(앱 전체 현황 조회/팀 삭제) 전용 암호. 팀 관리자 암호와는 별개입니다.
 export const SUPER_ADMIN_PIN = "2728";
 
+// 공장 관리자(소속 직장들을 합친 현황 조회) 전용 암호. 공장 전체가 공유해서 사용합니다.
+export const FACTORY_ADMIN_PIN = "6301";
+
 export const APP_CREATED_AT = "2026-07-30";
 export const APP_AUTHOR = "윤상경";
 

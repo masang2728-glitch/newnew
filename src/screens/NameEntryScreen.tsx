@@ -5,7 +5,7 @@ import { useSession } from "../session/SessionContext";
 import { upsertMember } from "../api/members";
 
 export default function NameEntryScreen() {
-  const { login, loginSuperAdmin } = useSession();
+  const { login, loginSuperAdmin, loginFactoryAdmin } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [orderNo, setOrderNo] = useState("");
@@ -16,6 +16,10 @@ export default function NameEntryScreen() {
 
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const [superAdminCode, setSuperAdminCode] = useState("");
+
+  const [showFactoryAdmin, setShowFactoryAdmin] = useState(false);
+  const [factoryInput, setFactoryInput] = useState("");
+  const [factoryCode, setFactoryCode] = useState("");
 
   const handleEnter = async () => {
     if (!name.trim()) {
@@ -62,6 +66,19 @@ export default function NameEntryScreen() {
 
   const onSuperAdminKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSuperAdminEnter();
+  };
+
+  const handleFactoryAdminEnter = () => {
+    const result = loginFactoryAdmin(factoryInput, factoryCode);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    navigate("/factory-dashboard", { replace: true });
+  };
+
+  const onFactoryAdminKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleFactoryAdminEnter();
   };
 
   return (
@@ -134,6 +151,35 @@ export default function NameEntryScreen() {
           ) : (
             <button type="button" className="entry-admin-link" onClick={() => setShowSuperAdmin(true)}>
               최고관리자이신가요?
+            </button>
+          )}
+        </div>
+
+        <div className="super-admin-block">
+          {showFactoryAdmin ? (
+            <>
+              <input
+                className="entry-input"
+                placeholder="공장명 (예: 전차공장)"
+                value={factoryInput}
+                onChange={(e) => setFactoryInput(e.target.value)}
+                onKeyDown={onFactoryAdminKeyDown}
+              />
+              <input
+                className="entry-input"
+                placeholder="공장관리자 암호"
+                type="password"
+                value={factoryCode}
+                onChange={(e) => setFactoryCode(e.target.value)}
+                onKeyDown={onFactoryAdminKeyDown}
+              />
+              <button type="button" className="entry-button entry-button-secondary" onClick={handleFactoryAdminEnter}>
+                공장관리자 입장
+              </button>
+            </>
+          ) : (
+            <button type="button" className="entry-admin-link" onClick={() => setShowFactoryAdmin(true)}>
+              공장관리자이신가요?
             </button>
           )}
         </div>

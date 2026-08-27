@@ -8,6 +8,7 @@ function tableName(type: RequestType) {
 function fromRow(row: any): RequestEntry {
   return {
     id: row.id,
+    team: row.team,
     name: row.name,
     date: row.date,
     createdAt: new Date(row.created_at).getTime(),
@@ -101,6 +102,14 @@ export async function setConfirmed(
     : { confirmed_at: null, confirmed_by: null };
   const { error } = await supabase.from(tableName(type)).update(payload).eq("id", id);
   if (error) throw error;
+}
+
+// 공장 관리자용 현황판: 특정 직장 목록의 신청을 한 번에 가져온다 (실시간 구독 아님, 새로고침 기반).
+export async function fetchRequestsForTeams(type: RequestType, teams: string[]): Promise<RequestEntry[]> {
+  if (teams.length === 0) return [];
+  const { data, error } = await supabase.from(tableName(type)).select("*").in("team", teams);
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
 }
 
 export function subscribePendingCount(
