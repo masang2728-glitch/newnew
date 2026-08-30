@@ -29,13 +29,7 @@ export default function NameEntryScreen() {
 
   useEffect(() => {
     fetchOrgGroups()
-      .then((groups) => {
-        setOrgGroups(groups);
-        const firstFactory = groups[0]?.factory ?? "";
-        setFactory(firstFactory);
-        setTeam(groups.find((g) => g.factory === firstFactory)?.team ?? "");
-        setFactoryAdminChoice(firstFactory);
-      })
+      .then((groups) => setOrgGroups(groups))
       .catch(() => toast.error("공장/직장 목록을 불러오지 못했습니다."))
       .finally(() => setLoadingOrg(false));
   }, []);
@@ -49,9 +43,10 @@ export default function NameEntryScreen() {
     [orgGroups, factory]
   );
 
+  // 공장을 바꾸면 직장은 항상 "선택" 상태로 되돌려 이전 공장의 직장이 잘못 남지 않게 한다.
   const handleFactoryChange = (f: string) => {
     setFactory(f);
-    setTeam(orgGroups.find((g) => g.factory === f)?.team ?? "");
+    setTeam("");
   };
 
   const handleEnter = async () => {
@@ -155,6 +150,9 @@ export default function NameEntryScreen() {
               value={factory}
               onChange={(e) => handleFactoryChange(e.target.value)}
             >
+              <option value="" disabled>
+                소속공장 선택
+              </option>
               {factoryNames.map((f) => (
                 <option key={f} value={f}>
                   {f}
@@ -165,6 +163,9 @@ export default function NameEntryScreen() {
               소속직장
             </div>
             <select className="entry-select" value={team} onChange={(e) => setTeam(e.target.value)}>
+              <option value="" disabled>
+                소속직장 선택
+              </option>
               {teamsInFactory.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -231,6 +232,9 @@ export default function NameEntryScreen() {
                   onChange={(e) => setFactoryAdminChoice(e.target.value)}
                   onKeyDown={onFactoryAdminKeyDown}
                 >
+                  <option value="" disabled>
+                    소속공장 선택
+                  </option>
                   {factoryNames.map((f) => (
                     <option key={f} value={f}>
                       {f}
