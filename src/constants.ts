@@ -11,8 +11,8 @@ export const FACTORY_ADMIN_PIN = "6301";
 export const APP_CREATED_AT = "2026-07-30";
 export const APP_AUTHOR = "윤상경";
 
-// 휴가 유형 대분류 (버튼 5개로 표시)
-export const VACATION_CATEGORIES = ["연가", "공가", "청원", "근무휴식", "기타"] as const;
+// 휴가 유형 대분류 (버튼 6개로 표시)
+export const VACATION_CATEGORIES = ["연가", "공가", "청원", "병가", "근무휴식", "기타"] as const;
 export type VacationCategory = (typeof VACATION_CATEGORIES)[number];
 
 // "연가" 클릭 시 팝업으로 고르는 세부 유형
@@ -23,10 +23,10 @@ export type LeaveSubType = (typeof LEAVE_SUBTYPES)[number];
 export const WORK_REST_SUBTYPES = ["오전", "오후", "종일"] as const;
 export type WorkRestSubType = (typeof WORK_REST_SUBTYPES)[number];
 
-export type VacationType = LeaveSubType | WorkRestSubType | "공가" | "청원" | "기타";
+export type VacationType = LeaveSubType | WorkRestSubType | "공가" | "청원" | "병가" | "기타";
 
-// 사유 기입란이 필요한 휴가 유형 ("공가"/"청원"/"기타"는 팝업에서 바로 사유를 입력받는다)
-export const REASON_REQUIRED_TYPES: VacationType[] = ["공가", "청원", "기타"];
+// 사유 기입란이 필요한 휴가 유형 ("공가"/"청원"/"병가"/"기타"는 팝업에서 바로 사유를 입력받는다)
+export const REASON_REQUIRED_TYPES: VacationType[] = ["공가", "청원", "병가", "기타"];
 
 // 자동으로 시작/종료시간이 채워지는 휴가 유형
 export const HALF_DAY_PRESETS: Partial<Record<VacationType, { start: string; end: string }>> = {

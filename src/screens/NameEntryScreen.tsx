@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import { upsertMember } from "../api/members";
+import { fetchOrgGroups, type OrgGroup } from "../api/orgGroups";
 
 export default function NameEntryScreen() {
   const { login, loginSuperAdmin, loginFactoryAdmin } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [orderNo, setOrderNo] = useState("");
-  const [team, setTeam] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -18,8 +18,41 @@ export default function NameEntryScreen() {
   const [superAdminCode, setSuperAdminCode] = useState("");
 
   const [showFactoryAdmin, setShowFactoryAdmin] = useState(false);
-  const [factoryInput, setFactoryInput] = useState("");
+  const [factoryAdminChoice, setFactoryAdminChoice] = useState("");
   const [factoryCode, setFactoryCode] = useState("");
+
+  // 공장/직장 목록 — 최고관리자가 등록해둔 org_groups에서 불러온다.
+  const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
+  const [loadingOrg, setLoadingOrg] = useState(true);
+  const [factory, setFactory] = useState("");
+  const [team, setTeam] = useState("");
+
+  useEffect(() => {
+    fetchOrgGroups()
+      .then((groups) => {
+        setOrgGroups(groups);
+        const firstFactory = groups[0]?.factory ?? "";
+        setFactory(firstFactory);
+        setTeam(groups.find((g) => g.factory === firstFactory)?.team ?? "");
+        setFactoryAdminChoice(firstFactory);
+      })
+      .catch(() => toast.error("공장/직장 목록을 불러오지 못했습니다."))
+      .finally(() => setLoadingOrg(false));
+  }, []);
+
+  const factoryNames = useMemo(
+    () => [...new Set(orgGroups.map((g) => g.factory))].sort(),
+    [orgGroups]
+  );
+  const teamsInFactory = useMemo(
+    () => orgGroups.filter((g) => g.factory === factory).map((g) => g.team).sort(),
+    [orgGroups, factory]
+  );
+
+  const handleFactoryChange = (f: string) => {
+    setFactory(f);
+    setTeam(orgGroups.find((g) => g.factory === f)?.team ?? "");
+  };
 
   const handleEnter = async () => {
     if (!name.trim()) {
@@ -32,7 +65,7 @@ export default function NameEntryScreen() {
       return;
     }
     if (!team.trim()) {
-      toast.error("팀명을 입력해주세요.");
+      toast.error("직장을 선택해주세요.");
       return;
     }
     const result = login(name, orderNoValue, team, pin);
@@ -69,7 +102,7 @@ export default function NameEntryScreen() {
   };
 
   const handleFactoryAdminEnter = () => {
-    const result = loginFactoryAdmin(factoryInput, factoryCode);
+    const result = loginFactoryAdmin(factoryAdminChoice, factoryCode);
     if (!result.ok) {
       toast.error(result.error);
       return;
@@ -81,11 +114,13 @@ export default function NameEntryScreen() {
     if (e.key === "Enter") handleFactoryAdminEnter();
   };
 
+  const noOrgRegistered = !loadingOrg && factoryNames.length === 0;
+
   return (
     <div className="entry-screen">
       <div className="entry-card">
         <h1 className="entry-title">휴가/야근 신청 캘린더</h1>
-        <p className="entry-subtitle">이름, 순번, 팀명을 입력하고 입장해주세요</p>
+        <p className="entry-subtitle">이름, 순번, 소속을 선택하고 입장해주세요</p>
 
         <input
           className="entry-input"
@@ -103,15 +138,38 @@ export default function NameEntryScreen() {
           onChange={(e) => setOrderNo(e.target.value)}
           onKeyDown={onKeyDown}
         />
-        <input
-          className="entry-input"
-          placeholder="팀명 (예: 영업1팀)"
-          value={team}
-          onChange={(e) => setTeam(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
+
+        {loadingOrg ? (
+          <p className="empty-text">공장/직장 목록을 불러오는 중...</p>
+        ) : noOrgRegistered ? (
+          <p className="empty-text">
+            아직 등록된 공장/직장이 없습니다. 최고관리자에게 등록을 요청해주세요.
+          </p>
+        ) : (
+          <>
+            <select
+              className="entry-select"
+              value={factory}
+              onChange={(e) => handleFactoryChange(e.target.value)}
+            >
+              {factoryNames.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+            <select className="entry-select" value={team} onChange={(e) => setTeam(e.target.value)}>
+              {teamsInFactory.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+
         <p className="entry-hint">
-          같은 팀원끼리는 팀명을 정확히 동일하게 입력해야 같은 캘린더를 공유합니다.
+          공장과 직장을 선택하면 같은 직장 동료와 캘린더를 공유합니다.
         </p>
 
         {showPin ? (
@@ -129,7 +187,7 @@ export default function NameEntryScreen() {
           </button>
         )}
 
-        <button type="button" className="entry-button" onClick={handleEnter} disabled={entering}>
+        <button type="button" className="entry-button" onClick={handleEnter} disabled={entering || noOrgRegistered}>
           {entering ? "입장 중..." : "입장"}
         </button>
 
@@ -158,13 +216,22 @@ export default function NameEntryScreen() {
         <div className="super-admin-block">
           {showFactoryAdmin ? (
             <>
-              <input
-                className="entry-input"
-                placeholder="공장명 (예: 전차공장)"
-                value={factoryInput}
-                onChange={(e) => setFactoryInput(e.target.value)}
-                onKeyDown={onFactoryAdminKeyDown}
-              />
+              {noOrgRegistered ? (
+                <p className="empty-text">등록된 공장이 없습니다.</p>
+              ) : (
+                <select
+                  className="entry-select"
+                  value={factoryAdminChoice}
+                  onChange={(e) => setFactoryAdminChoice(e.target.value)}
+                  onKeyDown={onFactoryAdminKeyDown}
+                >
+                  {factoryNames.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
+              )}
               <input
                 className="entry-input"
                 placeholder="공장관리자 암호"
@@ -173,7 +240,12 @@ export default function NameEntryScreen() {
                 onChange={(e) => setFactoryCode(e.target.value)}
                 onKeyDown={onFactoryAdminKeyDown}
               />
-              <button type="button" className="entry-button entry-button-secondary" onClick={handleFactoryAdminEnter}>
+              <button
+                type="button"
+                className="entry-button entry-button-secondary"
+                onClick={handleFactoryAdminEnter}
+                disabled={noOrgRegistered}
+              >
                 공장관리자 입장
               </button>
             </>

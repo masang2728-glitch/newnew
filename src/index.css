@@ -56,6 +56,19 @@ button, input {
   background: #fff;
   margin-bottom: 12px;
 }
+.entry-select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 16px;
+  background: #fff;
+  margin-bottom: 12px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'><path d='M1 1L7 7L13 1' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
 .entry-hint {
   font-size: 12px;
   color: #94a3b8;
@@ -639,6 +652,35 @@ button, input {
 .team-row-main { min-width: 0; }
 .team-row-name { font-size: 15px; font-weight: 800; color: #1e293b; }
 .team-row-meta { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+.leave-table {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.lt-row {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(5, 1fr);
+  align-items: center;
+}
+.lt-head {
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  padding: 9px 0;
+}
+.lt-cell { text-align: center; font-size: 13px; }
+.lt-cell-label { text-align: left; padding-left: 12px; font-weight: 800; color: #1e293b; }
+.lt-row:not(.lt-head):not(.lt-total-row) { border-top: 1px solid #f1f5f9; padding: 10px 0; }
+.lt-total-row {
+  border-top: 1px solid #f1f5f9;
+  background: #eff6ff;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1d4ed8;
+  padding: 10px 0;
+}
 
 .team-row-block { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
 .team-row-block .team-row { padding: 0 0 8px; border-bottom: none; }

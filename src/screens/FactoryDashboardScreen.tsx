@@ -6,8 +6,28 @@ import { fetchOrgGroups } from "../api/orgGroups";
 import { fetchRequestsForTeams } from "../api/requests";
 import type { RequestEntry } from "../types";
 import { todayString } from "../dateUtils";
+import { LEAVE_SUBTYPES } from "../constants";
 
 const THEME_COLOR = "#0f766e";
+
+// 사진 속 사고현황표의 "휴가/청원휴가/병가/공가" 4개 열에 맞춘 집계.
+// "휴가" 열 = 이 앱의 "연가" 대분류(1일 휴가/오전반차/오후반차/외출 세부유형 전부 포함).
+type LeaveBucket = "연가" | "청원" | "병가" | "공가";
+const LEAVE_BUCKETS: LeaveBucket[] = ["연가", "청원", "병가", "공가"];
+const LEAVE_BUCKET_LABEL: Record<LeaveBucket, string> = { 연가: "휴가", 청원: "청원", 병가: "병가", 공가: "공가" };
+const LEAVE_SUBTYPE_SET = new Set<string>(LEAVE_SUBTYPES);
+
+function emptyBucketCounts(): Record<LeaveBucket, number> {
+  return { 연가: 0, 청원: 0, 병가: 0, 공가: 0 };
+}
+
+function bucketOf(entry: RequestEntry): LeaveBucket | null {
+  const t = entry.leaveType;
+  if (!t) return null;
+  if (LEAVE_SUBTYPE_SET.has(t)) return "연가";
+  if (t === "청원" || t === "병가" || t === "공가") return t;
+  return null; // 근무휴식/기타는 이 표에서는 제외 (사진 속 표에 없는 유형)
+}
 
 export default function FactoryDashboardScreen() {
   const { factoryName, logout } = useSession();
@@ -63,18 +83,33 @@ export default function FactoryDashboardScreen() {
   );
 
   const byTeam = useMemo(() => {
-    const map: Record<string, { vacation: RequestEntry[]; overtime: RequestEntry[] }> = {};
-    for (const t of teams) map[t] = { vacation: [], overtime: [] };
+    const map: Record<
+      string,
+      { vacation: RequestEntry[]; overtime: RequestEntry[]; counts: Record<LeaveBucket, number> }
+    > = {};
+    for (const t of teams) map[t] = { vacation: [], overtime: [], counts: emptyBucketCounts() };
     for (const e of monthlyVacation) {
-      if (!map[e.team]) map[e.team] = { vacation: [], overtime: [] };
+      if (!map[e.team]) map[e.team] = { vacation: [], overtime: [], counts: emptyBucketCounts() };
       map[e.team].vacation.push(e);
+      const bucket = bucketOf(e);
+      if (bucket) map[e.team].counts[bucket] += 1;
     }
     for (const e of monthlyOvertime) {
-      if (!map[e.team]) map[e.team] = { vacation: [], overtime: [] };
+      if (!map[e.team]) map[e.team] = { vacation: [], overtime: [], counts: emptyBucketCounts() };
       map[e.team].overtime.push(e);
     }
     return map;
   }, [teams, monthlyVacation, monthlyOvertime]);
+
+  const factoryTotals = useMemo(() => {
+    const totals = emptyBucketCounts();
+    for (const team of teams) {
+      const c = byTeam[team]?.counts;
+      if (!c) continue;
+      for (const b of LEAVE_BUCKETS) totals[b] += c[b];
+    }
+    return totals;
+  }, [teams, byTeam]);
 
   const handleExit = () => {
     logout();
@@ -125,7 +160,62 @@ export default function FactoryDashboardScreen() {
           </div>
         </div>
 
-        <div className="section-title">직장별 현황</div>
+        <div className="section-title">유형별 집계</div>
+        <div className="stat-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+          {LEAVE_BUCKETS.map((b) => (
+            <div key={b} className="stat-card">
+              <div className="stat-value">{factoryTotals[b]}</div>
+              <div className="stat-label">{LEAVE_BUCKET_LABEL[b]}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="section-title">직장별 유형별 집계</div>
+        {loading ? (
+          <p className="empty-text">불러오는 중...</p>
+        ) : teams.length === 0 ? (
+          <p className="empty-text">이 공장에 배정된 직장이 없습니다.</p>
+        ) : (
+          <div className="leave-table">
+            <div className="lt-row lt-head">
+              <div className="lt-cell lt-cell-label">직장</div>
+              {LEAVE_BUCKETS.map((b) => (
+                <div key={b} className="lt-cell">
+                  {LEAVE_BUCKET_LABEL[b]}
+                </div>
+              ))}
+              <div className="lt-cell">합계</div>
+            </div>
+            <div className="lt-row lt-total-row">
+              <div className="lt-cell-label">총계</div>
+              {LEAVE_BUCKETS.map((b) => (
+                <div key={b} className="lt-cell">
+                  {factoryTotals[b]}
+                </div>
+              ))}
+              <div className="lt-cell">
+                {LEAVE_BUCKETS.reduce((sum, b) => sum + factoryTotals[b], 0)}
+              </div>
+            </div>
+            {teams.map((team) => {
+              const counts = byTeam[team]?.counts ?? emptyBucketCounts();
+              const total = LEAVE_BUCKETS.reduce((sum, b) => sum + counts[b], 0);
+              return (
+                <div key={team} className="lt-row">
+                  <div className="lt-cell-label">{team}</div>
+                  {LEAVE_BUCKETS.map((b) => (
+                    <div key={b} className="lt-cell">
+                      {counts[b]}
+                    </div>
+                  ))}
+                  <div className="lt-cell">{total}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="section-title">직장별 상세</div>
         {loading ? (
           <p className="empty-text">불러오는 중...</p>
         ) : teams.length === 0 ? (
@@ -134,7 +224,7 @@ export default function FactoryDashboardScreen() {
           </p>
         ) : (
           teams.map((team) => {
-            const data = byTeam[team] ?? { vacation: [], overtime: [] };
+            const data = byTeam[team] ?? { vacation: [], overtime: [], counts: emptyBucketCounts() };
             return (
               <div key={team} className="team-row-block">
                 <div className="team-row">

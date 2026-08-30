@@ -24,6 +24,9 @@ export default function SuperAdminScreen() {
   const [loading, setLoading] = useState(true);
   const [deletingTeam, setDeletingTeam] = useState<string | null>(null);
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [newFactory, setNewFactory] = useState("");
+  const [newTeam, setNewTeam] = useState("");
+  const [registeringTeam, setRegisteringTeam] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,17 +53,19 @@ export default function SuperAdminScreen() {
     }
   }, []);
 
-  // team_members에만 있고(신청 이력이 없어서) summary.teams엔 없는 팀도 목록에서 빠지지 않도록 합친다.
+  // team_members/org_groups에만 있고(신청 이력이 없어서) summary.teams엔 없는 팀도 목록에서 빠지지 않도록 합친다.
+  // (org_groups만 있는 경우는 아직 아무도 로그인하지 않은, 미리 등록만 해둔 직장.)
   const teamNames = useMemo(() => {
     const names = new Set<string>();
     (summary?.teams ?? []).forEach((t) => names.add(t.team));
     Object.keys(membersByTeam).forEach((t) => names.add(t));
+    Object.keys(factoryByTeam).forEach((t) => names.add(t));
     return [...names].sort((a, b) => {
       const ta = summary?.teams.find((x) => x.team === a)?.lastActivity ?? 0;
       const tb = summary?.teams.find((x) => x.team === b)?.lastActivity ?? 0;
       return tb - ta;
     });
-  }, [summary, membersByTeam]);
+  }, [summary, membersByTeam, factoryByTeam]);
 
   useEffect(() => {
     load();
@@ -98,6 +103,26 @@ export default function SuperAdminScreen() {
     }
   };
 
+  const handleRegisterTeam = async () => {
+    const factory = newFactory.trim();
+    const team = newTeam.trim();
+    if (!factory || !team) {
+      toast.error("공장명과 직장명을 모두 입력해주세요.");
+      return;
+    }
+    setRegisteringTeam(true);
+    try {
+      await setTeamFactory(team, factory);
+      toast.success(`"${factory}" 소속으로 "${team}"을(를) 등록했습니다.`);
+      setNewTeam("");
+      await load();
+    } catch {
+      toast.error("등록 중 오류가 발생했습니다.");
+    } finally {
+      setRegisteringTeam(false);
+    }
+  };
+
   const handleExit = () => {
     logout();
     navigate("/", { replace: true });
@@ -118,10 +143,45 @@ export default function SuperAdminScreen() {
       </div>
 
       <div className="content">
+        <div className="section-title" style={{ marginTop: 0 }}>
+          새 직장 등록
+        </div>
+        <p className="empty-text" style={{ marginTop: -8, marginBottom: 4 }}>
+          여기서 등록해두면 이름입장 화면의 공장/직장 선택 목록에 바로 나타납니다.
+        </p>
+        <div className="field-label" style={{ marginTop: 12 }}>
+          공장명
+        </div>
+        <input
+          className="text-field"
+          placeholder="예: 전차공장"
+          value={newFactory}
+          onChange={(e) => setNewFactory(e.target.value)}
+        />
+        <div className="field-label">직장명</div>
+        <input
+          className="text-field"
+          placeholder="예: 전차해체"
+          value={newTeam}
+          onChange={(e) => setNewTeam(e.target.value)}
+        />
+        <button
+          type="button"
+          className="submit-button"
+          style={{ backgroundColor: "#111827" }}
+          disabled={registeringTeam}
+          onClick={handleRegisterTeam}
+        >
+          {registeringTeam ? "등록 중..." : "등록"}
+        </button>
+
         {loading || !summary ? (
-          <p className="empty-text">불러오는 중...</p>
+          <p className="empty-text" style={{ marginTop: 28 }}>
+            불러오는 중...
+          </p>
         ) : (
           <>
+            <div className="section-title">전체 요약</div>
             <div className="stat-grid">
               <div className="stat-card">
                 <div className="stat-value">{teamNames.length}</div>

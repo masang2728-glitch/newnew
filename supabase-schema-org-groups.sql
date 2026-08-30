@@ -11,9 +11,11 @@ alter table org_groups enable row level security;
 drop policy if exists "public read org_groups" on org_groups;
 drop policy if exists "public insert org_groups" on org_groups;
 drop policy if exists "public update org_groups" on org_groups;
+drop policy if exists "public delete org_groups" on org_groups;
 create policy "public read org_groups" on org_groups for select using (true);
 create policy "public insert org_groups" on org_groups for insert with check (true);
 create policy "public update org_groups" on org_groups for update using (true);
+create policy "public delete org_groups" on org_groups for delete using (true);
 
 -- 실시간 구독을 위해 Realtime publication에 테이블 추가 (이미 추가되어 있으면 건너뜀)
 do $$

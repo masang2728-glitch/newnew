@@ -221,6 +221,14 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     () => new Set(monthlyEntries.map((e) => e.name)).size,
     [monthlyEntries]
   );
+  // 월별 휴가 명단은 지난 날짜를 제외하고, 날짜 오름차순으로 보여준다.
+  const upcomingMonthlyEntries = useMemo(
+    () =>
+      monthlyEntries
+        .filter((e) => !isPastDate(e.date))
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : byOrderAsc(a.name, b.name))),
+    [monthlyEntries, orderByName]
+  );
   const monthLabel = useMemo(() => {
     const [y, m] = viewMonth.split("-");
     return `${y}년 ${Number(m)}월`;
@@ -693,32 +701,29 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             {type === "vacation" && (
               <>
                 <div className="section-title">{monthLabel} 휴가 명단</div>
-                {monthlyEntries.length === 0 ? (
-                  <p className="empty-text">이번 달 신청 내역이 없습니다.</p>
+                {upcomingMonthlyEntries.length === 0 ? (
+                  <p className="empty-text">신청 내역이 없습니다.</p>
                 ) : (
-                  monthlyEntries
-                    .slice()
-                    .sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : byOrderAsc(a.name, b.name)))
-                    .map((e) => (
-                      <div key={e.id} className="agg-row">
-                        <div className="agg-row-top">
-                          <span className="agg-name">{e.name}</span>
-                          <span className="agg-date">{e.date}</span>
-                        </div>
-                        <div className="agg-detail">
-                          {e.leaveType}
-                          {e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : ""}
-                          {e.destination ? ` · ${e.destination}` : ""}
-                          {e.reason ? ` · 사유: ${e.reason}` : ""}
-                          {" · "}
-                          <span
-                            className={`confirm-badge ${e.confirmedAt ? "confirm-badge-done" : "confirm-badge-pending"}`}
-                          >
-                            {e.confirmedAt ? "✓ 확인" : "대기"}
-                          </span>
-                        </div>
+                  upcomingMonthlyEntries.map((e) => (
+                    <div key={e.id} className="agg-row">
+                      <div className="agg-row-top">
+                        <span className="agg-name">{e.name}</span>
+                        <span className="agg-date">{e.date}</span>
                       </div>
-                    ))
+                      <div className="agg-detail">
+                        {e.leaveType}
+                        {e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : ""}
+                        {e.destination ? ` · ${e.destination}` : ""}
+                        {e.reason ? ` · 사유: ${e.reason}` : ""}
+                        {" · "}
+                        <span
+                          className={`confirm-badge ${e.confirmedAt ? "confirm-badge-done" : "confirm-badge-pending"}`}
+                        >
+                          {e.confirmedAt ? "✓ 확인" : "대기"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
                 )}
               </>
             )}
