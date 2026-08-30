@@ -147,6 +147,9 @@ export default function NameEntryScreen() {
           </p>
         ) : (
           <>
+            <div className="field-label" style={{ marginTop: 0 }}>
+              소속공장
+            </div>
             <select
               className="entry-select"
               value={factory}
@@ -158,6 +161,9 @@ export default function NameEntryScreen() {
                 </option>
               ))}
             </select>
+            <div className="field-label" style={{ marginTop: 0 }}>
+              소속직장
+            </div>
             <select className="entry-select" value={team} onChange={(e) => setTeam(e.target.value)}>
               {teamsInFactory.map((t) => (
                 <option key={t} value={t}>

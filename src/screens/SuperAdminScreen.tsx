@@ -78,8 +78,10 @@ export default function SuperAdminScreen() {
       await deleteTeam(team);
       toast.success(`"${team}" 팀 데이터를 삭제했습니다.`);
       await load();
-    } catch {
-      toast.error("삭제 중 오류가 발생했습니다.");
+    } catch (err) {
+      // Supabase RLS 정책이 빠져있는 등 원인 파악이 필요한 경우를 대비해 실제 에러 메시지를 함께 보여준다.
+      const detail = err instanceof Error ? err.message : typeof err === "object" && err && "message" in err ? String((err as { message: unknown }).message) : "";
+      toast.error(detail ? `삭제 중 오류가 발생했습니다: ${detail}` : "삭제 중 오류가 발생했습니다.");
     } finally {
       setDeletingTeam(null);
     }
