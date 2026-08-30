@@ -11,7 +11,7 @@ import { LEAVE_SUBTYPES } from "../constants";
 const THEME_COLOR = "#0f766e";
 
 // 사진 속 사고현황표의 "휴가/청원휴가/병가/공가" 4개 열에 맞춘 집계.
-// "휴가" 열 = 이 앱의 "연가" 대분류(1일 휴가/오전반차/오후반차/외출 세부유형 전부 포함).
+// "휴가" 열 = 이 앱의 "연가" 대분류(연가(종일)/연가(오전)/연가(오후)/외출 세부유형 전부 포함).
 type LeaveBucket = "연가" | "청원" | "병가" | "공가";
 const LEAVE_BUCKETS: LeaveBucket[] = ["연가", "청원", "병가", "공가"];
 const LEAVE_BUCKET_LABEL: Record<LeaveBucket, string> = { 연가: "휴가", 청원: "청원", 병가: "병가", 공가: "공가" };

@@ -16,7 +16,7 @@ export const VACATION_CATEGORIES = ["연가", "공가", "청원", "병가", "근
 export type VacationCategory = (typeof VACATION_CATEGORIES)[number];
 
 // "연가" 클릭 시 팝업으로 고르는 세부 유형
-export const LEAVE_SUBTYPES = ["1일 휴가", "오전반차", "오후반차", "외출"] as const;
+export const LEAVE_SUBTYPES = ["연가(종일)", "연가(오전)", "연가(오후)", "외출"] as const;
 export type LeaveSubType = (typeof LEAVE_SUBTYPES)[number];
 
 // "근무휴식" 클릭 시 팝업으로 고르는 세부 유형
@@ -30,9 +30,9 @@ export const REASON_REQUIRED_TYPES: VacationType[] = ["공가", "청원", "병�
 
 // 자동으로 시작/종료시간이 채워지는 휴가 유형
 export const HALF_DAY_PRESETS: Partial<Record<VacationType, { start: string; end: string }>> = {
-  "1일 휴가": { start: "08:00", end: "17:00" },
-  오전반차: { start: "08:00", end: "12:00" },
-  오후반차: { start: "12:00", end: "17:00" },
+  "연가(종일)": { start: "08:00", end: "17:00" },
+  "연가(오전)": { start: "08:00", end: "12:00" },
+  "연가(오후)": { start: "12:00", end: "17:00" },
   오전: { start: "08:00", end: "12:00" },
   오후: { start: "12:00", end: "17:00" },
   종일: { start: "08:00", end: "17:00" },
