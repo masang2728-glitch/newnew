@@ -6,16 +6,16 @@ import { fetchOrgGroups } from "../api/orgGroups";
 import { fetchRequestsForTeams } from "../api/requests";
 import type { RequestEntry } from "../types";
 import { todayString } from "../dateUtils";
-import { LEAVE_SUBTYPES } from "../constants";
+import { categoryOfVacationType } from "../constants";
 
 const THEME_COLOR = "#0f766e";
 
 // 사진 속 사고현황표의 "휴가/청원휴가/병가/공가" 4개 열에 맞춘 집계.
-// "휴가" 열 = 이 앱의 "연가" 대분류(연가(종일)/연가(오전)/연가(오후)/외출 세부유형 전부 포함).
+// "휴가" 열 = 이 앱의 "연가" 대분류(연가(종일)/연가(오전)/연가(오후) 세부유형 전부 포함).
 type LeaveBucket = "연가" | "청원" | "병가" | "공가";
 const LEAVE_BUCKETS: LeaveBucket[] = ["연가", "청원", "병가", "공가"];
 const LEAVE_BUCKET_LABEL: Record<LeaveBucket, string> = { 연가: "휴가", 청원: "청원", 병가: "병가", 공가: "공가" };
-const LEAVE_SUBTYPE_SET = new Set<string>(LEAVE_SUBTYPES);
+const CATEGORY_TO_BUCKET: Partial<Record<string, LeaveBucket>> = { 연가: "연가", 청원휴가: "청원", 병가: "병가", 공가: "공가" };
 
 function emptyBucketCounts(): Record<LeaveBucket, number> {
   return { 연가: 0, 청원: 0, 병가: 0, 공가: 0 };
@@ -24,9 +24,9 @@ function emptyBucketCounts(): Record<LeaveBucket, number> {
 function bucketOf(entry: RequestEntry): LeaveBucket | null {
   const t = entry.leaveType;
   if (!t) return null;
-  if (LEAVE_SUBTYPE_SET.has(t)) return "연가";
-  if (t === "청원" || t === "병가" || t === "공가") return t;
-  return null; // 근무휴식/기타는 이 표에서는 제외 (사진 속 표에 없는 유형)
+  const category = categoryOfVacationType(t);
+  if (!category) return null;
+  return CATEGORY_TO_BUCKET[category] ?? null; // 특별휴가/기타/외출은 이 표에서는 제외 (사진 속 표에 없는 유형)
 }
 
 export default function FactoryDashboardScreen() {

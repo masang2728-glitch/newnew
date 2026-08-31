@@ -35,8 +35,8 @@ export default function TimeRangeSlider({
   minHour = DEFAULT_MIN_HOUR,
   maxHour = DEFAULT_MAX_HOUR,
 }: TimeRangeSliderProps) {
-  const [start, setStart] = useState(() => toHourFloat(startTime) ?? minHour + 2);
-  const [end, setEnd] = useState(() => toHourFloat(endTime) ?? minHour + 4);
+  const [start, setStart] = useState(() => toHourFloat(startTime) ?? 8);
+  const [end, setEnd] = useState(() => toHourFloat(endTime) ?? 10);
 
   useEffect(() => {
     const s = toHourFloat(startTime);
