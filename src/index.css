@@ -660,27 +660,45 @@ button, input {
 }
 .lt-row {
   display: grid;
-  grid-template-columns: 1.3fr repeat(5, 1fr);
+  grid-template-columns: 1fr repeat(6, 1fr);
   align-items: center;
 }
 .lt-head {
   background: #f1f5f9;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #64748b;
-  padding: 9px 0;
+  padding: 8px 0;
+  line-height: 1.25;
 }
 .lt-cell { text-align: center; font-size: 13px; }
-.lt-cell-label { text-align: left; padding-left: 12px; font-weight: 800; color: #1e293b; }
+.lt-cell-label { text-align: left; padding-left: 10px; font-weight: 800; color: #1e293b; font-size: 12.5px; }
 .lt-row:not(.lt-head):not(.lt-total-row) { border-top: 1px solid #f1f5f9; padding: 10px 0; }
 .lt-total-row {
   border-top: 1px solid #f1f5f9;
-  background: #eff6ff;
+  background: #f0fdfa;
   font-size: 13px;
   font-weight: 800;
-  color: #1d4ed8;
+  color: #0f766e;
   padding: 10px 0;
 }
+
+.remark-box { border: 1px solid #e2e8f0; border-radius: 14px; padding: 4px 16px; }
+.remark-row { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.remark-row:last-child { border-bottom: none; }
+.remark-type { font-size: 14px; font-weight: 800; color: #0f766e; margin-bottom: 6px; }
+.remark-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.remark-chip {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+}
+.remark-chip .team { color: #64748b; font-weight: 600; }
+.remark-none { font-size: 13px; color: #94a3b8; margin: 0; }
 
 .team-row-block { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
 .team-row-block .team-row { padding: 0 0 8px; border-bottom: none; }
