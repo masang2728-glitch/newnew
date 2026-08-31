@@ -24,6 +24,24 @@ const CATEGORY_TO_BUCKET: Partial<Record<string, LeaveBucket>> = {
   기타: "기타",
 };
 
+// 휴가 유형 구조가 몇 차례 바뀌면서 예전에 저장된 leaveType 값은 지금의 SUBTYPES_BY_CATEGORY에
+// 없을 수 있다 (예: 세부유형 없이 "청원"/"공가"/"병가"만 저장하던 시절, "1일 휴가"/"오전반차"/
+// "오후반차"로 부르던 시절, "근무휴식"의 "오전"/"오후"/"종일" 등). 그 옛 기록도 집계에서 빠지지
+// 않도록 별도로 매핑해둔다. ("기타"만은 예전 "기타" 대분류와 지금 청원휴가의 "기타" 세부유형이
+// 같은 문자열이라 구분이 안 되어, 현재 분류(청원휴가) 쪽으로 잡힌다.)
+const LEGACY_BUCKET: Partial<Record<string, LeaveBucket>> = {
+  연가: "휴가",
+  종일: "휴가",
+  "1일 휴가": "휴가",
+  오전반차: "휴가",
+  오후반차: "휴가",
+  공가: "공가",
+  청원: "청원휴가",
+  병가: "병가",
+  오전: "기타",
+  오후: "기타",
+};
+
 function emptyBucketCounts(): Record<LeaveBucket, number> {
   return { 휴가: 0, 청원휴가: 0, 병가: 0, 공가: 0, 기타: 0 };
 }
@@ -32,8 +50,8 @@ function bucketOf(entry: RequestEntry): LeaveBucket | null {
   const t = entry.leaveType;
   if (!t) return null;
   const category = categoryOfVacationType(t);
-  if (!category) return null;
-  return CATEGORY_TO_BUCKET[category] ?? null;
+  if (category) return CATEGORY_TO_BUCKET[category] ?? null;
+  return LEGACY_BUCKET[t] ?? null;
 }
 
 export default function FactoryDashboardScreen() {
