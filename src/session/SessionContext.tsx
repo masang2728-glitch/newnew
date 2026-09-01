@@ -7,6 +7,7 @@ const ORDER_KEY = "session:orderNo";
 const ADMIN_KEY = "session:isAdmin";
 const SUPER_ADMIN_KEY = "session:isSuperAdmin";
 const FACTORY_NAME_KEY = "session:factoryName";
+const HOME_FACTORY_KEY = "session:homeFactory";
 
 interface SessionContextValue {
   userName: string | null;
@@ -15,12 +16,16 @@ interface SessionContextValue {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   factoryName: string | null;
+  // "본부" 직장으로 일반 로그인한 사람이 소속된 공장. factoryName(공장관리자 PIN 로그인)과는
+  // 별개로, 평소 팀 화면은 그대로 쓰면서 공장 대시보드에도 추가로 접근할 수 있게 해준다.
+  homeFactory: string | null;
   isLoading: boolean;
   login: (
     name: string,
     orderNo: number,
     team: string,
-    pin: string
+    pin: string,
+    homeFactory?: string
   ) => { ok: true } | { ok: false; error: string };
   loginSuperAdmin: (code: string) => { ok: true } | { ok: false; error: string };
   loginFactoryAdmin: (factory: string, code: string) => { ok: true } | { ok: false; error: string };
@@ -36,6 +41,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [factoryName, setFactoryName] = useState<string | null>(null);
+  const [homeFactory, setHomeFactory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -46,10 +52,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setIsAdmin(localStorage.getItem(ADMIN_KEY) === "true");
     setIsSuperAdmin(localStorage.getItem(SUPER_ADMIN_KEY) === "true");
     setFactoryName(localStorage.getItem(FACTORY_NAME_KEY));
+    setHomeFactory(localStorage.getItem(HOME_FACTORY_KEY));
     setIsLoading(false);
   }, []);
 
-  const login = (name: string, orderNo: number, team: string, pin: string) => {
+  const login = (name: string, orderNo: number, team: string, pin: string, homeFactory?: string) => {
     const trimmedName = name.trim();
     const trimmedTeam = team.trim();
     const trimmedPin = pin.trim();
@@ -63,10 +70,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(TEAM_KEY, trimmedTeam);
     localStorage.setItem(ORDER_KEY, String(orderNo));
     localStorage.setItem(ADMIN_KEY, admin ? "true" : "false");
+    if (homeFactory) localStorage.setItem(HOME_FACTORY_KEY, homeFactory);
+    else localStorage.removeItem(HOME_FACTORY_KEY);
     setUserName(trimmedName);
     setTeamName(trimmedTeam);
     setOrderNo(orderNo);
     setIsAdmin(admin);
+    setHomeFactory(homeFactory ?? null);
     return { ok: true as const };
   };
 
@@ -99,12 +109,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(SUPER_ADMIN_KEY);
     localStorage.removeItem(FACTORY_NAME_KEY);
+    localStorage.removeItem(HOME_FACTORY_KEY);
     setUserName(null);
     setTeamName(null);
     setOrderNo(null);
     setIsAdmin(false);
     setIsSuperAdmin(false);
     setFactoryName(null);
+    setHomeFactory(null);
   };
 
   return (
@@ -116,6 +128,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         isAdmin,
         isSuperAdmin,
         factoryName,
+        homeFactory,
         isLoading,
         login,
         loginSuperAdmin,

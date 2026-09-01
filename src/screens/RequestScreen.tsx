@@ -149,11 +149,8 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     [entries, userName, isAdmin]
   );
 
-  // 캘린더 집계는 관리자가 확인한 휴가 신청만 반영한다 (야근은 기존대로 전체 반영).
-  const calendarEntries = useMemo(
-    () => (type === "vacation" ? entries.filter((e) => e.confirmedAt) : entries),
-    [entries, type]
-  );
+  // 캘린더 집계는 휴가/야근 모두 관리자가 확인한 신청만 반영한다.
+  const calendarEntries = useMemo(() => entries.filter((e) => e.confirmedAt), [entries]);
 
   const entriesByDate = useMemo(() => {
     const map: Record<string, RequestEntry[]> = {};
@@ -616,11 +613,9 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                 총 {monthlyEntries.length}건 · {monthlyHeadcount}명
               </span>
             </div>
-            {type === "vacation" && (
-              <p className="empty-text" style={{ marginTop: -8, marginBottom: 12 }}>
-                * 관리자가 확인한 신청만 캘린더에 집계됩니다.
-              </p>
-            )}
+            <p className="empty-text" style={{ marginTop: -8, marginBottom: 12 }}>
+              * 관리자가 확인한 신청만 캘린더에 집계됩니다.
+            </p>
             {type === "overtime" && (
               <div className="calendar-legend">
                 <span className="calendar-legend-item">

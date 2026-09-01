@@ -4,7 +4,7 @@ import { useSession } from "../session/SessionContext";
 import { subscribePendingCount } from "../api/requests";
 
 export default function MainScreen() {
-  const { userName, teamName, isAdmin, logout } = useSession();
+  const { userName, teamName, isAdmin, homeFactory, logout } = useSession();
   const navigate = useNavigate();
   const [pendingVacation, setPendingVacation] = useState(0);
   const [pendingOvertime, setPendingOvertime] = useState(0);
@@ -57,6 +57,15 @@ export default function MainScreen() {
         <button type="button" className="main-footer-link" onClick={() => navigate("/team-members")}>
           팀원 현황
         </button>
+        {homeFactory && (
+          <button
+            type="button"
+            className="main-footer-link main-footer-link-hq"
+            onClick={() => navigate("/factory-dashboard")}
+          >
+            공장 현황 대시보드
+          </button>
+        )}
         <button type="button" className="main-footer-link" onClick={() => navigate("/app-info")}>
           앱 정보
         </button>

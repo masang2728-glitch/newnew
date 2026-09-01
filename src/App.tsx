@@ -24,9 +24,9 @@ function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
 }
 
 function RequireFactoryAdmin({ children }: { children: React.ReactNode }) {
-  const { factoryName, isLoading } = useSession();
+  const { factoryName, homeFactory, isLoading } = useSession();
   if (isLoading) return null;
-  if (!factoryName) return <Navigate to="/" replace />;
+  if (!factoryName && !homeFactory) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
