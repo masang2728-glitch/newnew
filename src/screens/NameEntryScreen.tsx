@@ -63,8 +63,9 @@ export default function NameEntryScreen() {
       toast.error("직장을 선택해주세요.");
       return;
     }
-    // "본부" 직장은 사실상 공장 관리 부서라, 별도 PIN 없이 로그인만으로 자기 공장 대시보드에도 접근할 수 있게 한다.
-    const result = login(name, orderNoValue, team, pin, team === "본부" ? factory : undefined);
+    // "본부"(또는 "OO공장본부" 등 "본부"가 들어간 직장)는 사실상 공장 관리 부서라,
+    // 별도 PIN 없이 로그인만으로 자기 공장 대시보드에도 접근할 수 있게 한다.
+    const result = login(name, orderNoValue, team, pin, team.includes("본부") ? factory : undefined);
     if (!result.ok) {
       toast.error(result.error);
       return;
