@@ -233,7 +233,7 @@ export default function FactoryDashboardScreen() {
           style={tab === "leave" ? { borderBottomColor: THEME_COLOR, color: THEME_COLOR } : undefined}
           onClick={() => setTab("leave")}
         >
-          출타현황
+          인원현황
         </button>
         <button
           type="button"
@@ -271,7 +271,7 @@ export default function FactoryDashboardScreen() {
           <>
             <div className="section-title-row">
               <div className="section-title" style={{ margin: 0 }}>
-                {selectedDate} 출타현황
+                {selectedDate} 인원현황
               </div>
               <button type="button" className="refresh-link" onClick={load}>
                 새로고침
