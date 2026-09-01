@@ -74,8 +74,7 @@ function sortTeams(teams: string[]): string[] {
 type DashboardTab = "leave" | "overtime";
 
 export default function FactoryDashboardScreen() {
-  const { factoryName, homeFactory, logout } = useSession();
-  const activeFactory = factoryName ?? homeFactory;
+  const { homeFactory: activeFactory } = useSession();
   const navigate = useNavigate();
   const [tab, setTab] = useState<DashboardTab>("leave");
   const [teams, setTeams] = useState<string[]>([]);
@@ -209,14 +208,8 @@ export default function FactoryDashboardScreen() {
     return map;
   }, [selectedOvertimeEntries]);
 
-  // PIN으로 들어온 공장관리자는 완전히 로그아웃, "본부" 직장원은 자기 메인 화면으로만 돌아간다.
   const handleExit = () => {
-    if (factoryName) {
-      logout();
-      navigate("/", { replace: true });
-    } else {
-      navigate("/main", { replace: true });
-    }
+    navigate("/main", { replace: true });
   };
 
   return (
@@ -228,7 +221,7 @@ export default function FactoryDashboardScreen() {
             <div className="request-user">소속 직장 {teams.length}곳</div>
           </div>
           <button type="button" className="request-back" onClick={handleExit}>
-            {factoryName ? "나가기" : "메인으로"} ›
+            메인으로 ›
           </button>
         </div>
       </div>

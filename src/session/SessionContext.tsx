@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { ADMIN_PIN, SUPER_ADMIN_PIN, FACTORY_ADMIN_PIN } from "../constants";
+import { ADMIN_PIN, SUPER_ADMIN_PIN } from "../constants";
 
 const NAME_KEY = "session:userName";
 const TEAM_KEY = "session:teamName";
 const ORDER_KEY = "session:orderNo";
 const ADMIN_KEY = "session:isAdmin";
 const SUPER_ADMIN_KEY = "session:isSuperAdmin";
-const FACTORY_NAME_KEY = "session:factoryName";
 const HOME_FACTORY_KEY = "session:homeFactory";
 
 interface SessionContextValue {
@@ -15,9 +14,8 @@ interface SessionContextValue {
   orderNo: number | null;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  factoryName: string | null;
-  // "본부" 직장으로 일반 로그인한 사람이 소속된 공장. factoryName(공장관리자 PIN 로그인)과는
-  // 별개로, 평소 팀 화면은 그대로 쓰면서 공장 대시보드에도 추가로 접근할 수 있게 해준다.
+  // "본부" 직장으로 일반 로그인한 사람이 소속된 공장. 평소 팀 화면은 그대로 쓰면서
+  // 공장 대시보드에도 별도 PIN 없이 추가로 접근할 수 있게 해준다.
   homeFactory: string | null;
   isLoading: boolean;
   login: (
@@ -28,7 +26,6 @@ interface SessionContextValue {
     homeFactory?: string
   ) => { ok: true } | { ok: false; error: string };
   loginSuperAdmin: (code: string) => { ok: true } | { ok: false; error: string };
-  loginFactoryAdmin: (factory: string, code: string) => { ok: true } | { ok: false; error: string };
   logout: () => void;
 }
 
@@ -40,7 +37,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [orderNo, setOrderNo] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [factoryName, setFactoryName] = useState<string | null>(null);
   const [homeFactory, setHomeFactory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +47,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setOrderNo(storedOrder ? Number(storedOrder) : null);
     setIsAdmin(localStorage.getItem(ADMIN_KEY) === "true");
     setIsSuperAdmin(localStorage.getItem(SUPER_ADMIN_KEY) === "true");
-    setFactoryName(localStorage.getItem(FACTORY_NAME_KEY));
     setHomeFactory(localStorage.getItem(HOME_FACTORY_KEY));
     setIsLoading(false);
   }, []);
@@ -89,33 +84,18 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return { ok: true as const };
   };
 
-  const loginFactoryAdmin = (factory: string, code: string) => {
-    const trimmedFactory = factory.trim();
-    if (!trimmedFactory) {
-      return { ok: false as const, error: "공장명을 입력해주세요." };
-    }
-    if (code.trim() !== FACTORY_ADMIN_PIN) {
-      return { ok: false as const, error: "공장관리자 암호가 올바르지 않습니다." };
-    }
-    localStorage.setItem(FACTORY_NAME_KEY, trimmedFactory);
-    setFactoryName(trimmedFactory);
-    return { ok: true as const };
-  };
-
   const logout = () => {
     localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(TEAM_KEY);
     localStorage.removeItem(ORDER_KEY);
     localStorage.removeItem(ADMIN_KEY);
     localStorage.removeItem(SUPER_ADMIN_KEY);
-    localStorage.removeItem(FACTORY_NAME_KEY);
     localStorage.removeItem(HOME_FACTORY_KEY);
     setUserName(null);
     setTeamName(null);
     setOrderNo(null);
     setIsAdmin(false);
     setIsSuperAdmin(false);
-    setFactoryName(null);
     setHomeFactory(null);
   };
 
@@ -127,12 +107,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         orderNo,
         isAdmin,
         isSuperAdmin,
-        factoryName,
         homeFactory,
         isLoading,
         login,
         loginSuperAdmin,
-        loginFactoryAdmin,
         logout,
       }}
     >

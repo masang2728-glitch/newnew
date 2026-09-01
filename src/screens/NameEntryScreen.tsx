@@ -6,7 +6,7 @@ import { upsertMember } from "../api/members";
 import { fetchOrgGroups, type OrgGroup } from "../api/orgGroups";
 
 export default function NameEntryScreen() {
-  const { login, loginSuperAdmin, loginFactoryAdmin } = useSession();
+  const { login, loginSuperAdmin } = useSession();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [orderNo, setOrderNo] = useState("");
@@ -16,10 +16,6 @@ export default function NameEntryScreen() {
 
   const [showSuperAdmin, setShowSuperAdmin] = useState(false);
   const [superAdminCode, setSuperAdminCode] = useState("");
-
-  const [showFactoryAdmin, setShowFactoryAdmin] = useState(false);
-  const [factoryAdminChoice, setFactoryAdminChoice] = useState("");
-  const [factoryCode, setFactoryCode] = useState("");
 
   // 공장/직장 목록 — 최고관리자가 등록해둔 org_groups에서 불러온다.
   const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
@@ -96,19 +92,6 @@ export default function NameEntryScreen() {
 
   const onSuperAdminKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSuperAdminEnter();
-  };
-
-  const handleFactoryAdminEnter = () => {
-    const result = loginFactoryAdmin(factoryAdminChoice, factoryCode);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    navigate("/factory-dashboard", { replace: true });
-  };
-
-  const onFactoryAdminKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleFactoryAdminEnter();
   };
 
   const noOrgRegistered = !loadingOrg && factoryNames.length === 0;
@@ -218,52 +201,6 @@ export default function NameEntryScreen() {
           ) : (
             <button type="button" className="entry-admin-link" onClick={() => setShowSuperAdmin(true)}>
               최고관리자이신가요?
-            </button>
-          )}
-        </div>
-
-        <div className="super-admin-block">
-          {showFactoryAdmin ? (
-            <>
-              {noOrgRegistered ? (
-                <p className="empty-text">등록된 공장이 없습니다.</p>
-              ) : (
-                <select
-                  className="entry-select"
-                  value={factoryAdminChoice}
-                  onChange={(e) => setFactoryAdminChoice(e.target.value)}
-                  onKeyDown={onFactoryAdminKeyDown}
-                >
-                  <option value="" disabled>
-                    소속공장 선택
-                  </option>
-                  {factoryNames.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              )}
-              <input
-                className="entry-input"
-                placeholder="공장관리자 암호"
-                type="password"
-                value={factoryCode}
-                onChange={(e) => setFactoryCode(e.target.value)}
-                onKeyDown={onFactoryAdminKeyDown}
-              />
-              <button
-                type="button"
-                className="entry-button entry-button-secondary"
-                onClick={handleFactoryAdminEnter}
-                disabled={noOrgRegistered}
-              >
-                공장관리자 입장
-              </button>
-            </>
-          ) : (
-            <button type="button" className="entry-admin-link" onClick={() => setShowFactoryAdmin(true)}>
-              공장관리자이신가요?
             </button>
           )}
         </div>

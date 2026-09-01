@@ -24,17 +24,16 @@ function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
 }
 
 function RequireFactoryAdmin({ children }: { children: React.ReactNode }) {
-  const { factoryName, homeFactory, isLoading } = useSession();
+  const { homeFactory, isLoading } = useSession();
   if (isLoading) return null;
-  if (!factoryName && !homeFactory) return <Navigate to="/" replace />;
+  if (!homeFactory) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function RootRedirect() {
-  const { userName, teamName, isSuperAdmin, factoryName, isLoading } = useSession();
+  const { userName, teamName, isSuperAdmin, isLoading } = useSession();
   if (isLoading) return null;
   if (isSuperAdmin) return <Navigate to="/super-admin" replace />;
-  if (factoryName) return <Navigate to="/factory-dashboard" replace />;
   if (userName && teamName) return <Navigate to="/main" replace />;
   return <NameEntryScreen />;
 }
