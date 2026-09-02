@@ -4,82 +4,29 @@ import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import { fetchOrgGroups } from "../api/orgGroups";
 import { fetchRequestsForTeams } from "../api/requests";
-import type { RequestEntry } from "../types";
+import { fetchMembersForTeams } from "../api/members";
+import { fetchIncidentsForTeams } from "../api/incidents";
+import type { RequestEntry, IncidentRecord } from "../types";
 import { todayString } from "../dateUtils";
-import { categoryOfVacationType } from "../constants";
 import MonthCalendar from "../components/MonthCalendar";
+import {
+  REPORT_COLUMNS,
+  buildReportRows,
+  totalReportRow,
+  confirmedLeaveCountByDate,
+  incidentActiveOnDate,
+  leaveColumnOf,
+  type ReportColumn,
+} from "../reportTable";
+import { sortTeams, displayTeamName } from "../teamDisplay";
 
 const THEME_COLOR = "#0f766e";
-
-// 사고현황표 형식의 "휴가/청원휴가/병가/공가/기타" 5개 열에 맞춘 집계.
-// "휴가" 열 = "연가" 대분류, "기타" 열 = "특별휴가" + "기타" 대분류 합산. "외출"은 표에 없는 유형이라 제외.
-type LeaveBucket = "휴가" | "청원휴가" | "병가" | "공가" | "기타";
-const LEAVE_BUCKETS: LeaveBucket[] = ["휴가", "청원휴가", "병가", "공가", "기타"];
-const CATEGORY_TO_BUCKET: Partial<Record<string, LeaveBucket>> = {
-  연가: "휴가",
-  청원휴가: "청원휴가",
-  병가: "병가",
-  공가: "공가",
-  특별휴가: "기타",
-  기타: "기타",
-};
-
-// 휴가 유형 구조가 몇 차례 바뀌면서 예전에 저장된 leaveType 값은 지금의 SUBTYPES_BY_CATEGORY에
-// 없을 수 있다. 그 옛 기록도 집계에서 빠지지 않도록 별도로 매핑해둔다.
-const LEGACY_BUCKET: Partial<Record<string, LeaveBucket>> = {
-  연가: "휴가",
-  종일: "휴가",
-  "1일 휴가": "휴가",
-  오전반차: "휴가",
-  오후반차: "휴가",
-  공가: "공가",
-  청원: "청원휴가",
-  병가: "병가",
-  오전: "기타",
-  오후: "기타",
-};
-
-function emptyBucketCounts(): Record<LeaveBucket, number> {
-  return { 휴가: 0, 청원휴가: 0, 병가: 0, 공가: 0, 기타: 0 };
-}
-
-function bucketOf(entry: RequestEntry): LeaveBucket | null {
-  const t = entry.leaveType;
-  if (!t) return null;
-  const category = categoryOfVacationType(t);
-  if (category) return CATEGORY_TO_BUCKET[category] ?? null;
-  return LEGACY_BUCKET[t] ?? null;
-}
 
 type OvertimeBucket = "조출" | "야근";
 const OVERTIME_BUCKETS: OvertimeBucket[] = ["조출", "야근"];
 
 function emptyOvertimeCounts(): Record<OvertimeBucket, number> {
   return { 조출: 0, 야근: 0 };
-}
-
-// 직장 표시 순서: 알려진 직장은 이 순서로 고정하고, 그 외 직장은 뒤에 가나다순으로 붙인다.
-// 실제 직장명이 "차체직장"처럼 접미사가 붙어 있을 수 있어 정확히 일치가 아니라 포함 여부로 비교한다.
-const TEAM_ORDER_PRIORITY = ["본부", "차체", "포탑", "유압", "해체"];
-function priorityIndex(team: string): number {
-  return TEAM_ORDER_PRIORITY.findIndex((keyword) => team.includes(keyword));
-}
-// 직장명에 공장명 접두어("전차차체" 등)가 붙어 있으면 화면에 표시할 때는 빼서 보여준다.
-// (실제 데이터를 조회/집계할 때 쓰는 team 값 자체는 그대로 둔다.)
-function displayTeamName(team: string): string {
-  const stripped = team.replace(/전차/g, "").trim();
-  return stripped || team;
-}
-
-function sortTeams(teams: string[]): string[] {
-  return [...teams].sort((a, b) => {
-    const ia = priorityIndex(a);
-    const ib = priorityIndex(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
-    return a.localeCompare(b, "ko");
-  });
 }
 
 type DashboardTab = "leave" | "overtime";
@@ -91,6 +38,8 @@ export default function FactoryDashboardScreen() {
   const [teams, setTeams] = useState<string[]>([]);
   const [vacationEntries, setVacationEntries] = useState<RequestEntry[]>([]);
   const [overtimeEntries, setOvertimeEntries] = useState<RequestEntry[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRecord[]>([]);
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [month, setMonth] = useState(todayString().slice(0, 7));
   const [selectedDate, setSelectedDate] = useState<string | null>(todayString());
   const [loading, setLoading] = useState(true);
@@ -102,12 +51,18 @@ export default function FactoryDashboardScreen() {
       const groups = await fetchOrgGroups();
       const myTeams = sortTeams(groups.filter((g) => g.factory === activeFactory).map((g) => g.team));
       setTeams(myTeams);
-      const [vac, ot] = await Promise.all([
+      const [vac, ot, inc, members] = await Promise.all([
         fetchRequestsForTeams("vacation", myTeams),
         fetchRequestsForTeams("overtime", myTeams),
+        fetchIncidentsForTeams(myTeams),
+        fetchMembersForTeams(myTeams),
       ]);
       setVacationEntries(vac);
       setOvertimeEntries(ot);
+      setIncidents(inc);
+      const counts: Record<string, number> = {};
+      for (const m of members) counts[m.team] = (counts[m.team] ?? 0) + 1;
+      setMemberCounts(counts);
     } catch {
       toast.error("현황을 불러오지 못했습니다.");
     } finally {
@@ -119,17 +74,6 @@ export default function FactoryDashboardScreen() {
     load();
   }, [activeFactory]);
 
-  // 관리자가 확인한 신청만 날짜별로 묶는다 (휴가는 표에서 다루는 5개 항목만).
-  const leaveEntriesByDate = useMemo(() => {
-    const map: Record<string, RequestEntry[]> = {};
-    for (const e of vacationEntries) {
-      if (!e.confirmedAt || !bucketOf(e)) continue;
-      if (!map[e.date]) map[e.date] = [];
-      map[e.date].push(e);
-    }
-    return map;
-  }, [vacationEntries]);
-
   const overtimeEntriesByDate = useMemo(() => {
     const map: Record<string, RequestEntry[]> = {};
     for (const e of overtimeEntries) {
@@ -140,55 +84,59 @@ export default function FactoryDashboardScreen() {
     return map;
   }, [overtimeEntries]);
 
-  const entriesByDate = tab === "leave" ? leaveEntriesByDate : overtimeEntriesByDate;
-
-  // 캘린더 배지는 지금 보고 있는 탭(출타/특근) 기준으로 그날 신청한 인원 수를 보여준다.
-  const countByDate = useMemo(() => {
+  // 캘린더 배지: 인원현황 탭은 확인된 휴가 신청 인원만 센다 (사고관리 등록 인원은 표에만 집계되고
+  // 달력에는 표시되지 않는다). 특근현황 탭은 기존 그대로 조출/야근 신청 인원 수.
+  const leaveCountByDate = useMemo(() => confirmedLeaveCountByDate(vacationEntries), [vacationEntries]);
+  const overtimeCountByDate = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const d of Object.keys(entriesByDate)) map[d] = new Set(entriesByDate[d].map((e) => e.name)).size;
+    for (const d of Object.keys(overtimeEntriesByDate)) {
+      map[d] = new Set(overtimeEntriesByDate[d].map((e) => e.name)).size;
+    }
     return map;
-  }, [entriesByDate]);
+  }, [overtimeEntriesByDate]);
+  const countByDate = tab === "leave" ? leaveCountByDate : overtimeCountByDate;
 
-  const selectedLeaveEntries = useMemo(
-    () => (selectedDate ? (leaveEntriesByDate[selectedDate] ?? []) : []),
-    [selectedDate, leaveEntriesByDate]
-  );
   const selectedOvertimeEntries = useMemo(
     () => (selectedDate ? (overtimeEntriesByDate[selectedDate] ?? []) : []),
     [selectedDate, overtimeEntriesByDate]
   );
 
-  const leaveTeamCounts = useMemo(() => {
-    const map: Record<string, Record<LeaveBucket, number>> = {};
-    for (const t of teams) map[t] = emptyBucketCounts();
-    for (const e of selectedLeaveEntries) {
-      const bucket = bucketOf(e);
-      if (!bucket) continue;
-      if (!map[e.team]) map[e.team] = emptyBucketCounts();
-      map[e.team][bucket] += 1;
+  const reportRows = useMemo(
+    () =>
+      selectedDate
+        ? buildReportRows(teams, selectedDate, vacationEntries, incidents, memberCounts)
+        : [],
+    [teams, selectedDate, vacationEntries, incidents, memberCounts]
+  );
+  const reportTotal = useMemo(() => totalReportRow(reportRows), [reportRows]);
+
+  // 표 아래 "비고": 사진 속 표의 비고 칸(직장별 한 줄)은 빼고, 대신 항목별로 오늘 해당하는
+  // 사람 이름을 모아서 보여준다 (관리자가 표만 보고는 알 수 없는 "누구인지"를 확인할 수 있게).
+  const remarksByColumn = useMemo(() => {
+    const map: Record<ReportColumn, string[]> = {
+      휴가: [],
+      청원휴가: [],
+      병가: [],
+      공가: [],
+      출장: [],
+      교육: [],
+      휴직: [],
+      공로: [],
+      파견: [],
+      기타: [],
+    };
+    if (!selectedDate) return map;
+    for (const e of vacationEntries) {
+      if (e.date !== selectedDate || !e.confirmedAt) continue;
+      const col = leaveColumnOf(e);
+      if (col) map[col].push(`${displayTeamName(e.team)}·${e.name} (${e.leaveType})`);
+    }
+    for (const r of incidents) {
+      if (!incidentActiveOnDate(r, selectedDate)) continue;
+      map[r.type].push(`${displayTeamName(r.team)}·${r.name}`);
     }
     return map;
-  }, [teams, selectedLeaveEntries]);
-
-  const leaveTotals = useMemo(() => {
-    const totals = emptyBucketCounts();
-    for (const team of teams) {
-      const c = leaveTeamCounts[team];
-      if (!c) continue;
-      for (const b of LEAVE_BUCKETS) totals[b] += c[b];
-    }
-    return totals;
-  }, [teams, leaveTeamCounts]);
-
-  // "비고"는 사진 속 표처럼 항목(대분류)별로 묶고, 그 안에서 소속 직장을 함께 보여준다.
-  const leaveRemarks = useMemo(() => {
-    const map: Record<LeaveBucket, RequestEntry[]> = { 휴가: [], 청원휴가: [], 병가: [], 공가: [], 기타: [] };
-    for (const e of selectedLeaveEntries) {
-      const bucket = bucketOf(e);
-      if (bucket) map[bucket].push(e);
-    }
-    return map;
-  }, [selectedLeaveEntries]);
+  }, [selectedDate, vacationEntries, incidents]);
 
   const overtimeTeamCounts = useMemo(() => {
     const map: Record<string, Record<OvertimeBucket, number>> = {};
@@ -282,62 +230,68 @@ export default function FactoryDashboardScreen() {
           <>
             <div className="section-title-row">
               <div className="section-title" style={{ margin: 0 }}>
-                {selectedDate} 인원현황
+                {selectedDate} 사고현황
               </div>
               <button type="button" className="refresh-link" onClick={load}>
                 새로고침
               </button>
             </div>
 
-            <div className="leave-table">
-              <div className="lt-row lt-head">
-                <div className="lt-cell lt-cell-label">직장</div>
-                {LEAVE_BUCKETS.map((b) => (
-                  <div key={b} className="lt-cell">
-                    {b}
-                  </div>
-                ))}
-                <div className="lt-cell">합계</div>
-              </div>
-              <div className="lt-row lt-total-row">
-                <div className="lt-cell-label">총계</div>
-                {LEAVE_BUCKETS.map((b) => (
-                  <div key={b} className="lt-cell">
-                    {leaveTotals[b]}
-                  </div>
-                ))}
-                <div className="lt-cell">{LEAVE_BUCKETS.reduce((sum, b) => sum + leaveTotals[b], 0)}</div>
-              </div>
-              {teams.map((team) => {
-                const counts = leaveTeamCounts[team] ?? emptyBucketCounts();
-                const total = LEAVE_BUCKETS.reduce((sum, b) => sum + counts[b], 0);
-                return (
-                  <div key={team} className="lt-row">
-                    <div className="lt-cell-label">{displayTeamName(team)}</div>
-                    {LEAVE_BUCKETS.map((b) => (
-                      <div key={b} className="lt-cell">
-                        {counts[b]}
-                      </div>
+            <div className="report-table-wrap">
+              <table className="report-table">
+                <thead>
+                  <tr>
+                    <th rowSpan={2}>구분</th>
+                    <th rowSpan={2}>총원</th>
+                    <th rowSpan={2}>사고</th>
+                    <th rowSpan={2}>현재원</th>
+                    <th className="rt-group-head" colSpan={REPORT_COLUMNS.length}>
+                      사고 내용
+                    </th>
+                  </tr>
+                  <tr>
+                    {REPORT_COLUMNS.map((c) => (
+                      <th key={c}>{c}</th>
                     ))}
-                    <div className="lt-cell">{total}</div>
-                  </div>
-                );
-              })}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="rt-total-row">
+                    <td className="rt-label">{reportTotal.team}</td>
+                    <td>{reportTotal.total}</td>
+                    <td>{reportTotal.accident}</td>
+                    <td>{reportTotal.current}</td>
+                    {REPORT_COLUMNS.map((c) => (
+                      <td key={c}>{reportTotal.counts[c]}</td>
+                    ))}
+                  </tr>
+                  {reportRows.map((row) => (
+                    <tr key={row.team}>
+                      <td className="rt-label">{displayTeamName(row.team)}</td>
+                      <td>{row.total}</td>
+                      <td>{row.accident}</td>
+                      <td>{row.current}</td>
+                      {REPORT_COLUMNS.map((c) => (
+                        <td key={c}>{row.counts[c]}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            <div className="section-title">비고 (항목별 신청자)</div>
+            <div className="section-title">비고 (항목별 명단)</div>
             <div className="remark-box">
-              {LEAVE_BUCKETS.map((b) => (
-                <div key={b} className="remark-row">
-                  <div className="remark-type">{b}</div>
-                  {leaveRemarks[b].length === 0 ? (
+              {REPORT_COLUMNS.map((c) => (
+                <div key={c} className="remark-row">
+                  <div className="remark-type">{c}</div>
+                  {remarksByColumn[c].length === 0 ? (
                     <p className="remark-none">없음</p>
                   ) : (
                     <div className="remark-chip-row">
-                      {leaveRemarks[b].map((e) => (
-                        <span key={e.id} className="remark-chip">
-                          <span className="team">{displayTeamName(e.team)}·</span>
-                          {e.name} ({e.leaveType})
+                      {remarksByColumn[c].map((label, i) => (
+                        <span key={`${c}-${i}`} className="remark-chip">
+                          {label}
                         </span>
                       ))}
                     </div>

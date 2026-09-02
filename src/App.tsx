@@ -8,6 +8,8 @@ import SuperAdminScreen from "./screens/SuperAdminScreen";
 import AppInfoScreen from "./screens/AppInfoScreen";
 import TeamMembersScreen from "./screens/TeamMembersScreen";
 import FactoryDashboardScreen from "./screens/FactoryDashboardScreen";
+import TeamDashboardScreen from "./screens/TeamDashboardScreen";
+import AccidentManagementScreen from "./screens/AccidentManagementScreen";
 
 function RequireSession({ children }: { children: React.ReactNode }) {
   const { userName, teamName, isLoading } = useSession();
@@ -27,6 +29,13 @@ function RequireFactoryAdmin({ children }: { children: React.ReactNode }) {
   const { homeFactory, isLoading } = useSession();
   if (isLoading) return null;
   if (!homeFactory) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function RequireTeamAdmin({ children }: { children: React.ReactNode }) {
+  const { userName, teamName, isAdmin, isLoading } = useSession();
+  if (isLoading) return null;
+  if (!userName || !teamName || !isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -98,6 +107,22 @@ function App() {
               <RequireFactoryAdmin>
                 <FactoryDashboardScreen />
               </RequireFactoryAdmin>
+            }
+          />
+          <Route
+            path="/team-dashboard"
+            element={
+              <RequireTeamAdmin>
+                <TeamDashboardScreen />
+              </RequireTeamAdmin>
+            }
+          />
+          <Route
+            path="/accident-management"
+            element={
+              <RequireTeamAdmin>
+                <AccidentManagementScreen />
+              </RequireTeamAdmin>
             }
           />
         </Routes>

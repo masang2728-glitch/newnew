@@ -66,6 +66,15 @@ export default function MainScreen() {
             공장 현황 대시보드
           </button>
         )}
+        {isAdmin && (
+          <button
+            type="button"
+            className="main-footer-link main-footer-link-hq"
+            onClick={() => navigate("/team-dashboard")}
+          >
+            직장 대시보드
+          </button>
+        )}
         <button type="button" className="main-footer-link" onClick={() => navigate("/app-info")}>
           앱 정보
         </button>

@@ -22,6 +22,14 @@ export async function deleteMember(team: string, name: string) {
   if (error) throw error;
 }
 
+// 공장 관리자용 현황판: 특정 직장 목록의 팀원(총원)을 한 번에 가져온다.
+export async function fetchMembersForTeams(teams: string[]): Promise<TeamMember[]> {
+  if (teams.length === 0) return [];
+  const { data, error } = await supabase.from("team_members").select("*").in("team", teams);
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
+}
+
 export async function fetchAllTeamMembers(): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from("team_members")

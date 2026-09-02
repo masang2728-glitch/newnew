@@ -70,3 +70,8 @@ export const HALF_DAY_PRESETS: Partial<Record<VacationType, { start: string; end
 
 export const OVERTIME_SUBTYPES = ["조출", "야근"] as const;
 export type OvertimeSubType = (typeof OVERTIME_SUBTYPES)[number];
+
+// 사고현황표의 "사고내용" 중 휴가 신청 유형이 아니라 직장 관리자가 직접 입력하는 5개 항목.
+// (달력 배지에는 반영되지 않고, 등록한 기간의 매일 사고현황표에만 집계된다.)
+export const INCIDENT_TYPES = ["출장", "교육", "휴직", "공로", "파견"] as const;
+export type IncidentType = (typeof INCIDENT_TYPES)[number];

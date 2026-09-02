@@ -1,4 +1,4 @@
-import type { VacationType, OvertimeSubType } from "./constants";
+import type { VacationType, OvertimeSubType, IncidentType } from "./constants";
 
 export type RequestType = "vacation" | "overtime";
 
@@ -26,4 +26,18 @@ export interface TeamMember {
   name: string;
   orderNo: number;
   joinedAt: number; // epoch millis
+}
+
+// "사고관리": 출장/교육/휴직/공로/파견 - 직장 관리자가 직접 입력하는 기간 기반 기록.
+// 달력에는 표시되지 않고, startDate~endDate 기간의 매일 사고현황표 집계에 포함된다.
+export interface IncidentRecord {
+  id: string;
+  team: string;
+  name: string;
+  type: IncidentType;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  note?: string;
+  createdAt: number; // epoch millis
+  createdBy?: string;
 }
