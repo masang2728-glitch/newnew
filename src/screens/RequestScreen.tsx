@@ -59,6 +59,23 @@ function entryLabel(entry: RequestEntry): string {
   return entry.name;
 }
 
+// "청원휴가/병가/공가/특별휴가"도 연가처럼 종일/오전/오후 시간 프리셋 + 직접입력을 고를 수 있게 한다.
+const TIME_CHOICE_CATEGORIES: VacationCategory[] = ["청원휴가", "병가", "공가", "특별휴가"];
+type TimeChoice = "종일" | "오전" | "오후" | "직접입력";
+const TIME_CHOICES: TimeChoice[] = ["종일", "오전", "오후", "직접입력"];
+const TIME_CHOICE_PRESETS: Record<Exclude<TimeChoice, "직접입력">, { start: string; end: string }> = {
+  종일: { start: "08:00", end: "17:00" },
+  오전: { start: "08:00", end: "12:00" },
+  오후: { start: "12:00", end: "17:00" },
+};
+
+// 같은 날짜에 다른 유형으로 또 신청할 때, 이미 신청된 시간과 겹치는지 확인한다.
+// 시작/종료시간이 비어있으면(선택 안 함) 종일로 간주해 항상 겹치는 것으로 본다.
+function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  if (!aStart || !aEnd || !bStart || !bEnd) return true;
+  return aStart < bEnd && bStart < aEnd;
+}
+
 export default function RequestScreen({ type, title, themeColor }: Props) {
   const { userName, teamName, isAdmin } = useSession();
   const navigate = useNavigate();
@@ -67,8 +84,11 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [viewingDate, setViewingDate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<RequestEntry | null>(null);
+  const [blockedCancelNotice, setBlockedCancelNotice] = useState(false);
+  const [overlapConflict, setOverlapConflict] = useState<{ date: string; existing: RequestEntry } | null>(null);
   const [applyMonth, setApplyMonth] = useState<string>(todayString().slice(0, 7));
   const [viewMonth, setViewMonth] = useState<string>(todayString().slice(0, 7));
+  const [adminListTab, setAdminListTab] = useState<"upcoming" | "past">("upcoming");
 
   // 관리자가 팀원을 대신해 신청할 때 쓰는 대상자 선택
   const [applicantName, setApplicantName] = useState(userName ?? "");
@@ -98,13 +118,16 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [destination, setDestination] = useState("");
   const [reason, setReason] = useState("");
   const [categoryPicker, setCategoryPicker] = useState<VacationCategory | null>(null);
+  const [timeChoice, setTimeChoice] = useState<TimeChoice | null>(null);
 
   const halfDayPreset = vacationType ? HALF_DAY_PRESETS[vacationType] : undefined;
 
   const selectedCategory: VacationCategory | null = vacationType ? categoryOfVacationType(vacationType) : null;
+  const showTimeChoice = selectedCategory ? TIME_CHOICE_CATEGORIES.includes(selectedCategory) : false;
 
   const selectVacationType = (vt: VacationType) => {
     setVacationType(vt);
+    setTimeChoice(null);
     const preset = HALF_DAY_PRESETS[vt];
     if (preset) {
       setStartTime(preset.start);
@@ -113,6 +136,14 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
       setStartTime("");
       setEndTime("");
     }
+  };
+
+  const chooseTimeOption = (choice: TimeChoice) => {
+    setTimeChoice(choice);
+    if (choice === "직접입력") return;
+    const preset = TIME_CHOICE_PRESETS[choice];
+    setStartTime(preset.start);
+    setEndTime(preset.end);
   };
 
   // "외출"은 세부유형이 없어 팝업 없이 바로 선택되고, 나머지 6개는 팝업으로 세부유형을 고른다.
@@ -141,13 +172,20 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     return unsubscribe;
   }, [teamName, type]);
 
-  const visibleEntries = useMemo(
-    () =>
-      isAdmin
-        ? entries.slice().sort((a, b) => (a.date < b.date ? -1 : 1))
-        : entries.filter((e) => e.name === userName).sort((a, b) => (a.date < b.date ? -1 : 1)),
-    [entries, userName, isAdmin]
-  );
+  // 관리자의 "전체 신청 내역 관리"는 예정/지난 신청 탭으로 나누고, 그 안에서는
+  // 아직 확인 안 한 신청이 위로 오도록 정렬한다. 본인 목록(비관리자)은 기존과 동일.
+  const visibleEntries = useMemo(() => {
+    if (!isAdmin) {
+      return entries.filter((e) => e.name === userName).sort((a, b) => (a.date < b.date ? -1 : 1));
+    }
+    return entries
+      .filter((e) => (adminListTab === "upcoming" ? !isPastDate(e.date) : isPastDate(e.date)))
+      .sort((a, b) => {
+        const pendingDiff = (a.confirmedAt ? 1 : 0) - (b.confirmedAt ? 1 : 0);
+        if (pendingDiff !== 0) return pendingDiff;
+        return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+      });
+  }, [entries, userName, isAdmin, adminListTab]);
 
   // 캘린더 집계는 휴가/야근 모두 관리자가 확인한 신청만 반영한다.
   const calendarEntries = useMemo(() => entries.filter((e) => e.confirmedAt), [entries]);
@@ -285,6 +323,17 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
         toast.error(`이미 같은 유형(${vacationType})으로 신청한 날짜가 포함되어 있습니다. (${duplicates.join(", ")})`);
         return;
       }
+      // 같은 날짜에 이미 신청된(다른 유형) 시간과 겹치면 막는다.
+      for (const date of selectedDates) {
+        const sameDayEntries = entries.filter((e) => e.name === applicant && e.date === date);
+        const conflict = sameDayEntries.find((e) =>
+          timesOverlap(startTime, endTime, e.startTime ?? "", e.endTime ?? "")
+        );
+        if (conflict) {
+          setOverlapConflict({ date, existing: conflict });
+          return;
+        }
+      }
 
       setSubmitting(true);
       try {
@@ -302,6 +351,7 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
         );
         setSelectedDates(new Set());
         setVacationType(null);
+        setTimeChoice(null);
         setStartTime("");
         setEndTime("");
         setDestination("");
@@ -362,8 +412,13 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   };
 
   const handleCancel = (entry: RequestEntry) => {
-    const allowed = entry.name === userName || isAdmin;
-    if (!allowed) return;
+    const isOwner = entry.name === userName;
+    if (!isOwner && !isAdmin) return;
+    // 본인은 관리자가 이미 확인한 신청을 임의로 취소할 수 없다 (관리자는 예외).
+    if (isOwner && !isAdmin && entry.confirmedAt) {
+      setBlockedCancelNotice(true);
+      return;
+    }
     setCancelTarget(entry);
   };
 
@@ -505,7 +560,37 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                   </div>
                 )}
 
-                {vacationType && !halfDayPreset && (
+                {vacationType && showTimeChoice && (
+                  <>
+                    <div className="field-label">시간 선택</div>
+                    <div className="chip-row">
+                      {TIME_CHOICES.map((choice) => (
+                        <button
+                          key={choice}
+                          type="button"
+                          className="option-chip"
+                          style={
+                            timeChoice === choice
+                              ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
+                              : undefined
+                          }
+                          onClick={() => chooseTimeOption(choice)}
+                        >
+                          {choice}
+                        </button>
+                      ))}
+                    </div>
+                    {timeChoice && timeChoice !== "직접입력" && (
+                      <div className="auto-time-box">
+                        <span>
+                          {timeChoice} · {startTime} ~ {endTime}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {vacationType && (showTimeChoice ? timeChoice === "직접입력" : !halfDayPreset) && (
                   <>
                     <div className="field-label">시작~종료시간 (선택)</div>
                     <TimeRangeSlider
@@ -573,6 +658,34 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             <div className="section-title">
               {isAdmin ? `전체 ${title} 신청 내역 관리` : `나의 ${title} 신청 내역`}
             </div>
+            {isAdmin && (
+              <div className="list-toggle">
+                <button
+                  type="button"
+                  className="list-toggle-btn"
+                  style={
+                    adminListTab === "upcoming"
+                      ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
+                      : undefined
+                  }
+                  onClick={() => setAdminListTab("upcoming")}
+                >
+                  예정
+                </button>
+                <button
+                  type="button"
+                  className="list-toggle-btn"
+                  style={
+                    adminListTab === "past"
+                      ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
+                      : undefined
+                  }
+                  onClick={() => setAdminListTab("past")}
+                >
+                  지난 신청
+                </button>
+              </div>
+            )}
             {visibleEntries.length === 0 ? (
               <p className="empty-text">신청 내역이 없습니다.</p>
             ) : (
@@ -791,6 +904,51 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
             </button>
             <button type="button" className="modal-cancel" onClick={() => setCancelTarget(null)}>
               닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {blockedCancelNotice && (
+        <div className="modal-backdrop" onClick={() => setBlockedCancelNotice(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">이미 관리자가 확인한 신청이에요</div>
+            <p className="modal-desc">
+              관리자 확인이 끝난 신청은 본인이 임의로 취소할 수 없습니다. 취소가 필요하면 관리자에게 문의해주세요.
+            </p>
+            <button
+              type="button"
+              className="modal-option"
+              style={{ backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }}
+              onClick={() => setBlockedCancelNotice(false)}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
+      {overlapConflict && (
+        <div className="modal-backdrop" onClick={() => setOverlapConflict(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">신청 시간이 겹쳐요</div>
+            <p className="modal-desc">
+              같은 날짜에 이미 신청하신 시간과 겹쳐서 이번 신청을 접수할 수 없습니다.
+            </p>
+            <div className="conflict-box">
+              {overlapConflict.date} · {overlapConflict.existing.leaveType}
+              {overlapConflict.existing.startTime && overlapConflict.existing.endTime
+                ? ` ${overlapConflict.existing.startTime}~${overlapConflict.existing.endTime}`
+                : " (종일)"}
+              과 겹침
+            </div>
+            <button
+              type="button"
+              className="modal-option"
+              style={{ backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }}
+              onClick={() => setOverlapConflict(null)}
+            >
+              확인
             </button>
           </div>
         </div>

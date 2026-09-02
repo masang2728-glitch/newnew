@@ -64,6 +64,13 @@ const TEAM_ORDER_PRIORITY = ["본부", "차체", "포탑", "유압", "해체"];
 function priorityIndex(team: string): number {
   return TEAM_ORDER_PRIORITY.findIndex((keyword) => team.includes(keyword));
 }
+// 직장명에 공장명 접두어("전차차체" 등)가 붙어 있으면 화면에 표시할 때는 빼서 보여준다.
+// (실제 데이터를 조회/집계할 때 쓰는 team 값 자체는 그대로 둔다.)
+function displayTeamName(team: string): string {
+  const stripped = team.replace(/전차/g, "").trim();
+  return stripped || team;
+}
+
 function sortTeams(teams: string[]): string[] {
   return [...teams].sort((a, b) => {
     const ia = priorityIndex(a);
@@ -306,7 +313,7 @@ export default function FactoryDashboardScreen() {
                 const total = LEAVE_BUCKETS.reduce((sum, b) => sum + counts[b], 0);
                 return (
                   <div key={team} className="lt-row">
-                    <div className="lt-cell-label">{team}</div>
+                    <div className="lt-cell-label">{displayTeamName(team)}</div>
                     {LEAVE_BUCKETS.map((b) => (
                       <div key={b} className="lt-cell">
                         {counts[b]}
@@ -329,7 +336,7 @@ export default function FactoryDashboardScreen() {
                     <div className="remark-chip-row">
                       {leaveRemarks[b].map((e) => (
                         <span key={e.id} className="remark-chip">
-                          <span className="team">{e.team}·</span>
+                          <span className="team">{displayTeamName(e.team)}·</span>
                           {e.name} ({e.leaveType})
                         </span>
                       ))}
@@ -374,7 +381,7 @@ export default function FactoryDashboardScreen() {
                 const total = OVERTIME_BUCKETS.reduce((sum, b) => sum + counts[b], 0);
                 return (
                   <div key={team} className="ot-row">
-                    <div className="ot-cell-label">{team}</div>
+                    <div className="ot-cell-label">{displayTeamName(team)}</div>
                     {OVERTIME_BUCKETS.map((b) => (
                       <div key={b} className="ot-cell">
                         {counts[b]}
@@ -397,7 +404,7 @@ export default function FactoryDashboardScreen() {
                     <div className="remark-chip-row">
                       {overtimeRemarks[b].map((e) => (
                         <span key={e.id} className="remark-chip">
-                          <span className="team">{e.team}·</span>
+                          <span className="team">{displayTeamName(e.team)}·</span>
                           {e.name}
                         </span>
                       ))}
