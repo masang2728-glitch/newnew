@@ -19,9 +19,10 @@ export function sortTeams(teams: string[]): string[] {
   });
 }
 
-// 직장명에 공장명 접두어("전차차체" 등)가 붙어 있으면 화면에 표시할 때는 빼서 보여준다.
+// 직장명에 공장명 접두어("전차차체" 등)나 "공장"이라는 글자("공장본부" 등)가 붙어 있으면
+// 화면에 표시할 때는 빼서 보여준다 ("전차공장본부" → "본부").
 // (실제 데이터를 조회/집계할 때 쓰는 team 값 자체는 그대로 둔다.)
 export function displayTeamName(team: string): string {
-  const stripped = team.replace(/전차/g, "").trim();
+  const stripped = team.replace(/전차|공장/g, "").trim();
   return stripped || team;
 }
