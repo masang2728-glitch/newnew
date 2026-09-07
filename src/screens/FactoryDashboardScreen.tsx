@@ -111,30 +111,35 @@ export default function FactoryDashboardScreen() {
   const reportTotal = useMemo(() => totalReportRow(reportRows), [reportRows]);
 
   // 표 아래 "비고": 사진 속 표의 비고 칸(직장별 한 줄)은 빼고, 대신 항목별로 오늘 해당하는
-  // 사람 이름을 모아서 보여준다 (관리자가 표만 보고는 알 수 없는 "누구인지"를 확인할 수 있게).
+  // 사람 이름을 직장별로 묶어서 보여준다 (관리자가 표만 보고는 알 수 없는 "누구인지"를 확인할 수 있게).
   const remarksByColumn = useMemo(() => {
-    const map: Record<ReportColumn, string[]> = {
-      휴가: [],
-      청원휴가: [],
-      병가: [],
-      공가: [],
-      외출: [],
-      출장: [],
-      교육: [],
-      휴직: [],
-      공로: [],
-      파견: [],
-      기타: [],
+    const map: Record<ReportColumn, Map<string, string[]>> = {
+      휴가: new Map(),
+      청원휴가: new Map(),
+      병가: new Map(),
+      공가: new Map(),
+      외출: new Map(),
+      출장: new Map(),
+      교육: new Map(),
+      휴직: new Map(),
+      공로: new Map(),
+      파견: new Map(),
+      기타: new Map(),
     };
     if (!selectedDate) return map;
     for (const e of vacationEntries) {
       if (e.date !== selectedDate || !e.confirmedAt) continue;
       const col = leaveColumnOf(e);
-      if (col) map[col].push(`${displayTeamName(e.team)}·${e.name} (${e.leaveType})`);
+      if (!col) continue;
+      const teamMap = map[col];
+      if (!teamMap.has(e.team)) teamMap.set(e.team, []);
+      teamMap.get(e.team)!.push(`${e.name} (${e.leaveType})`);
     }
     for (const r of incidents) {
       if (!incidentActiveOnDate(r, selectedDate)) continue;
-      map[r.type].push(`${displayTeamName(r.team)}·${r.name}`);
+      const teamMap = map[r.type];
+      if (!teamMap.has(r.team)) teamMap.set(r.team, []);
+      teamMap.get(r.team)!.push(r.name);
     }
     return map;
   }, [selectedDate, vacationEntries, incidents]);
@@ -283,22 +288,37 @@ export default function FactoryDashboardScreen() {
 
             <div className="section-title">비고 (항목별 명단)</div>
             <div className="remark-box">
-              {REPORT_COLUMNS.map((c) => (
-                <div key={c} className="remark-row">
-                  <div className="remark-type">{c}</div>
-                  {remarksByColumn[c].length === 0 ? (
-                    <p className="remark-none">없음</p>
-                  ) : (
-                    <div className="remark-chip-row">
-                      {remarksByColumn[c].map((label, i) => (
-                        <span key={`${c}-${i}`} className="remark-chip">
-                          {label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+              {REPORT_COLUMNS.map((c) => {
+                const teamMap = remarksByColumn[c];
+                return (
+                  <div key={c} className="remark-row">
+                    <div className="remark-type">{c}</div>
+                    {teamMap.size === 0 ? (
+                      <p className="remark-none">없음</p>
+                    ) : (
+                      teams.map((team) => {
+                        const names = teamMap.get(team);
+                        if (!names || names.length === 0) return null;
+                        return (
+                          <div key={team} className="remark-team-group">
+                            <div className="remark-team-label">
+                              <span className="remark-team-name">{displayTeamName(team)}</span>
+                              <span className="remark-team-count">{names.length}명</span>
+                            </div>
+                            <div className="remark-chip-row">
+                              {names.map((label, i) => (
+                                <span key={`${team}-${i}`} className="remark-chip">
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : (

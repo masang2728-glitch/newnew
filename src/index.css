@@ -705,7 +705,7 @@ button, input {
 }
 
 .remark-box { border: 1px solid #e2e8f0; border-radius: 14px; padding: 4px 16px; }
-.remark-row { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.remark-row { padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
 .remark-row:last-child { border-bottom: none; }
 .remark-type { font-size: 14px; font-weight: 800; color: #0f766e; margin-bottom: 6px; }
 .remark-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -721,6 +721,21 @@ button, input {
 .remark-chip .team { color: #64748b; font-weight: 600; }
 .remark-none { font-size: 13px; color: #94a3b8; margin: 0; }
 .remark-type-ot { color: #c2410c; }
+
+/* 공장 대시보드 "비고" - 항목 안에서 직장별로 소그룹 나눠 보여줄 때 */
+.remark-team-group { border-left: 3px solid #ccfbf1; padding-left: 10px; margin-top: 12px; }
+.remark-team-group:first-of-type { margin-top: 4px; }
+.remark-team-label { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.remark-team-name { font-size: 12.5px; font-weight: 800; color: #334155; }
+.remark-team-count {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #0f766e;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
 
 .ot-table { border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; }
 .ot-row { display: grid; grid-template-columns: 1fr repeat(3, 1fr); align-items: center; }
