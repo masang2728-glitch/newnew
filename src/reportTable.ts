@@ -31,19 +31,9 @@ export const REPORT_COLUMNS: ReportColumn[] = [
 ];
 
 // 직장 대시보드에서만 우선 추가한 "외출" 열 - 일단 직장 대시보드에만 반영한다.
-export const TEAM_REPORT_COLUMNS: ReportColumn[] = [
-  "휴가",
-  "청원휴가",
-  "병가",
-  "공가",
-  "외출",
-  "출장",
-  "교육",
-  "휴직",
-  "공로",
-  "파견",
-  "기타",
-];
+// "외출"은 사고로 집계되지 않으므로(사고/현재원 계산에서 제외) "사고 내용" 그룹과는 별개로,
+// 표 맨 오른쪽에 붙는 열로 다룬다 - REPORT_COLUMNS(사고 집계 대상)와는 항상 분리해서 쓸 것.
+export const TEAM_REPORT_COLUMNS: ReportColumn[] = [...REPORT_COLUMNS, "외출"];
 
 type LeaveColumn = "휴가" | "청원휴가" | "병가" | "공가" | "외출" | "기타";
 

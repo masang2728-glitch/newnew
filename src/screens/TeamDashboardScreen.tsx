@@ -9,6 +9,7 @@ import type { RequestEntry, IncidentRecord } from "../types";
 import { todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
 import {
+  REPORT_COLUMNS,
   TEAM_REPORT_COLUMNS,
   buildReportRows,
   confirmedLeaveCountByDate,
@@ -59,14 +60,9 @@ export default function TeamDashboardScreen() {
 
   const reportRow = useMemo(() => {
     if (!selectedDate || !teamName) return null;
-    return buildReportRows(
-      [teamName],
-      selectedDate,
-      vacationEntries,
-      incidents,
-      { [teamName]: memberCount },
-      TEAM_REPORT_COLUMNS
-    )[0];
+    // "외출"은 사고로 집계되지 않으므로 columns 인자를 안 넘겨서 기본 REPORT_COLUMNS(외출 제외)로
+    // 사고/현재원을 계산한다 - reportRow.counts에는 외출 값도 그대로 들어있어 표에는 계속 보여준다.
+    return buildReportRows([teamName], selectedDate, vacationEntries, incidents, { [teamName]: memberCount })[0];
   }, [selectedDate, teamName, vacationEntries, incidents, memberCount]);
 
   const remarksByColumn = useMemo(() => {
@@ -151,12 +147,14 @@ export default function TeamDashboardScreen() {
                     <th rowSpan={2}>총원</th>
                     <th rowSpan={2}>사고</th>
                     <th rowSpan={2}>현재원</th>
-                    <th className="rt-group-head" colSpan={TEAM_REPORT_COLUMNS.length}>
+                    <th className="rt-group-head" colSpan={REPORT_COLUMNS.length}>
                       사고 내용
                     </th>
+                    {/* 외출은 사고로 집계되지 않으므로 "사고 내용" 그룹과 분리해 맨 오른쪽에 둔다. */}
+                    <th rowSpan={2}>외출</th>
                   </tr>
                   <tr>
-                    {TEAM_REPORT_COLUMNS.map((c) => (
+                    {REPORT_COLUMNS.map((c) => (
                       <th key={c}>{c}</th>
                     ))}
                   </tr>
@@ -167,9 +165,10 @@ export default function TeamDashboardScreen() {
                     <td>{reportRow.total}</td>
                     <td>{reportRow.accident}</td>
                     <td>{reportRow.current}</td>
-                    {TEAM_REPORT_COLUMNS.map((c) => (
+                    {REPORT_COLUMNS.map((c) => (
                       <td key={c}>{reportRow.counts[c]}</td>
                     ))}
+                    <td>{reportRow.counts["외출"]}</td>
                   </tr>
                 </tbody>
               </table>
