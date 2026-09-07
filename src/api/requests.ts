@@ -91,6 +91,30 @@ export async function cancelRequest(type: RequestType, id: string) {
   if (error) throw error;
 }
 
+// 관리자가 이미 등록된 신청(지난 신청 포함)의 내용을 사후에 고칠 때 쓴다.
+export async function updateRequest(
+  type: RequestType,
+  id: string,
+  updates: Partial<
+    Pick<RequestEntry, "date" | "leaveType" | "startTime" | "endTime" | "destination" | "reason" | "subType">
+  >
+) {
+  const payload: Record<string, unknown> = {};
+  if (updates.date !== undefined) payload.date = updates.date;
+  if (type === "vacation") {
+    if (updates.leaveType !== undefined) payload.leave_type = updates.leaveType;
+    if ("startTime" in updates) payload.start_time = updates.startTime || null;
+    if ("endTime" in updates) payload.end_time = updates.endTime || null;
+    if ("destination" in updates) payload.destination = updates.destination || null;
+    if ("reason" in updates) payload.reason = updates.reason || null;
+  } else if (updates.subType !== undefined) {
+    payload.sub_type = updates.subType;
+  }
+
+  const { error } = await supabase.from(tableName(type)).update(payload).eq("id", id);
+  if (error) throw error;
+}
+
 export async function setConfirmed(
   type: RequestType,
   id: string,

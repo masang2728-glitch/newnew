@@ -9,7 +9,7 @@ import type { RequestEntry, IncidentRecord } from "../types";
 import { todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
 import {
-  REPORT_COLUMNS,
+  TEAM_REPORT_COLUMNS,
   buildReportRows,
   confirmedLeaveCountByDate,
   incidentActiveOnDate,
@@ -59,7 +59,14 @@ export default function TeamDashboardScreen() {
 
   const reportRow = useMemo(() => {
     if (!selectedDate || !teamName) return null;
-    return buildReportRows([teamName], selectedDate, vacationEntries, incidents, { [teamName]: memberCount })[0];
+    return buildReportRows(
+      [teamName],
+      selectedDate,
+      vacationEntries,
+      incidents,
+      { [teamName]: memberCount },
+      TEAM_REPORT_COLUMNS
+    )[0];
   }, [selectedDate, teamName, vacationEntries, incidents, memberCount]);
 
   const remarksByColumn = useMemo(() => {
@@ -68,6 +75,7 @@ export default function TeamDashboardScreen() {
       청원휴가: [],
       병가: [],
       공가: [],
+      외출: [],
       출장: [],
       교육: [],
       휴직: [],
@@ -143,12 +151,12 @@ export default function TeamDashboardScreen() {
                     <th rowSpan={2}>총원</th>
                     <th rowSpan={2}>사고</th>
                     <th rowSpan={2}>현재원</th>
-                    <th className="rt-group-head" colSpan={REPORT_COLUMNS.length}>
+                    <th className="rt-group-head" colSpan={TEAM_REPORT_COLUMNS.length}>
                       사고 내용
                     </th>
                   </tr>
                   <tr>
-                    {REPORT_COLUMNS.map((c) => (
+                    {TEAM_REPORT_COLUMNS.map((c) => (
                       <th key={c}>{c}</th>
                     ))}
                   </tr>
@@ -159,7 +167,7 @@ export default function TeamDashboardScreen() {
                     <td>{reportRow.total}</td>
                     <td>{reportRow.accident}</td>
                     <td>{reportRow.current}</td>
-                    {REPORT_COLUMNS.map((c) => (
+                    {TEAM_REPORT_COLUMNS.map((c) => (
                       <td key={c}>{reportRow.counts[c]}</td>
                     ))}
                   </tr>
@@ -169,7 +177,7 @@ export default function TeamDashboardScreen() {
 
             <div className="section-title">비고 (항목별 명단)</div>
             <div className="remark-box">
-              {REPORT_COLUMNS.map((c) => (
+              {TEAM_REPORT_COLUMNS.map((c) => (
                 <div key={c} className="remark-row">
                   <div className="remark-type">{c}</div>
                   {remarksByColumn[c].length === 0 ? (

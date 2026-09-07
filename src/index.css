@@ -493,6 +493,15 @@ button, input {
   cursor: pointer;
   flex-shrink: 0;
 }
+.edit-link {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
 
 .confirm-badge {
   font-size: 12px;

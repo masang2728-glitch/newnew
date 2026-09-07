@@ -8,6 +8,7 @@ export type ReportColumn =
   | "청원휴가"
   | "병가"
   | "공가"
+  | "외출"
   | "출장"
   | "교육"
   | "휴직"
@@ -15,6 +16,7 @@ export type ReportColumn =
   | "파견"
   | "기타";
 
+// 공장 현황 대시보드에서 쓰는 기본 10칸 (사진 속 사고현황표 그대로).
 export const REPORT_COLUMNS: ReportColumn[] = [
   "휴가",
   "청원휴가",
@@ -28,14 +30,30 @@ export const REPORT_COLUMNS: ReportColumn[] = [
   "기타",
 ];
 
-type LeaveColumn = "휴가" | "청원휴가" | "병가" | "공가" | "기타";
+// 직장 대시보드에서만 우선 추가한 "외출" 열 - 일단 직장 대시보드에만 반영한다.
+export const TEAM_REPORT_COLUMNS: ReportColumn[] = [
+  "휴가",
+  "청원휴가",
+  "병가",
+  "공가",
+  "외출",
+  "출장",
+  "교육",
+  "휴직",
+  "공로",
+  "파견",
+  "기타",
+];
 
-// "휴가" 열 = "연가" 대분류, "기타" 열 = "특별휴가" + "기타" 대분류 합산. "외출"은 표에 없는 유형이라 제외.
+type LeaveColumn = "휴가" | "청원휴가" | "병가" | "공가" | "외출" | "기타";
+
+// "휴가" 열 = "연가" 대분류, "기타" 열 = "특별휴가" + "기타" 대분류 합산.
 const CATEGORY_TO_COLUMN: Partial<Record<string, LeaveColumn>> = {
   연가: "휴가",
   청원휴가: "청원휴가",
   병가: "병가",
   공가: "공가",
+  외출: "외출",
   특별휴가: "기타",
   기타: "기타",
 };
@@ -69,6 +87,7 @@ export function emptyReportCounts(): Record<ReportColumn, number> {
     청원휴가: 0,
     병가: 0,
     공가: 0,
+    외출: 0,
     출장: 0,
     교육: 0,
     휴직: 0,
@@ -96,7 +115,8 @@ export function buildReportRows(
   selectedDate: string,
   leaveEntries: RequestEntry[],
   incidents: IncidentRecord[],
-  memberCountByTeam: Record<string, number>
+  memberCountByTeam: Record<string, number>,
+  columns: ReportColumn[] = REPORT_COLUMNS
 ): ReportRow[] {
   return teams.map((team) => {
     const counts = emptyReportCounts();
@@ -110,20 +130,20 @@ export function buildReportRows(
       if (!incidentActiveOnDate(r, selectedDate)) continue;
       counts[r.type] += 1;
     }
-    const accident = REPORT_COLUMNS.reduce((sum, c) => sum + counts[c], 0);
+    const accident = columns.reduce((sum, c) => sum + counts[c], 0);
     const total = memberCountByTeam[team] ?? 0;
     return { team, total, counts, accident, current: total - accident };
   });
 }
 
-export function totalReportRow(rows: ReportRow[], label = "총계"): ReportRow {
+export function totalReportRow(rows: ReportRow[], label = "총계", columns: ReportColumn[] = REPORT_COLUMNS): ReportRow {
   const counts = emptyReportCounts();
   let total = 0;
   for (const row of rows) {
     total += row.total;
-    for (const c of REPORT_COLUMNS) counts[c] += row.counts[c];
+    for (const c of columns) counts[c] += row.counts[c];
   }
-  const accident = REPORT_COLUMNS.reduce((sum, c) => sum + counts[c], 0);
+  const accident = columns.reduce((sum, c) => sum + counts[c], 0);
   return { team: label, total, counts, accident, current: total - accident };
 }
 

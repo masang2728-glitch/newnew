@@ -118,6 +118,7 @@ export default function FactoryDashboardScreen() {
       청원휴가: [],
       병가: [],
       공가: [],
+      외출: [],
       출장: [],
       교육: [],
       휴직: [],

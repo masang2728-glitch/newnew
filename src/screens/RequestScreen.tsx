@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import type { RequestEntry, RequestType, TeamMember } from "../types";
-import { subscribeToRequests, createRequest, cancelRequest, setConfirmed } from "../api/requests";
+import { subscribeToRequests, createRequest, cancelRequest, setConfirmed, updateRequest } from "../api/requests";
 import { subscribeToMembers } from "../api/members";
 import { isPastDate, todayString } from "../dateUtils";
 import MonthCalendar from "../components/MonthCalendar";
@@ -85,6 +85,15 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<RequestEntry | null>(null);
   const [blockedCancelNotice, setBlockedCancelNotice] = useState(false);
+  const [editTarget, setEditTarget] = useState<RequestEntry | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editVacationType, setEditVacationType] = useState<VacationType | "">("");
+  const [editStart, setEditStart] = useState("");
+  const [editEnd, setEditEnd] = useState("");
+  const [editDestination, setEditDestination] = useState("");
+  const [editReason, setEditReason] = useState("");
+  const [editSubType, setEditSubType] = useState<OvertimeSubType | "">("");
+  const [editSaving, setEditSaving] = useState(false);
   const [overlapConflict, setOverlapConflict] = useState<{ date: string; existing: RequestEntry } | null>(null);
   const [applyMonth, setApplyMonth] = useState<string>(todayString().slice(0, 7));
   const [viewMonth, setViewMonth] = useState<string>(todayString().slice(0, 7));
@@ -434,6 +443,53 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
     }
   };
 
+  // 관리자가 지난 신청을 포함해 이미 등록된 내역의 내용을 사후에 고칠 때 쓴다.
+  const openEdit = (entry: RequestEntry) => {
+    setEditTarget(entry);
+    setEditDate(entry.date);
+    if (type === "vacation") {
+      setEditVacationType(entry.leaveType ?? "");
+      setEditStart(entry.startTime ?? "");
+      setEditEnd(entry.endTime ?? "");
+      setEditDestination(entry.destination ?? "");
+      setEditReason(entry.reason ?? "");
+    } else {
+      setEditSubType(entry.subType ?? "");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    if (editStart && editEnd && editStart >= editEnd) {
+      toast.error("종료시간은 시작시간보다 늦어야 합니다.");
+      return;
+    }
+    setEditSaving(true);
+    try {
+      if (type === "vacation") {
+        await updateRequest("vacation", editTarget.id, {
+          date: editDate,
+          leaveType: editVacationType || undefined,
+          startTime: editStart || undefined,
+          endTime: editEnd || undefined,
+          destination: editDestination.trim() || undefined,
+          reason: editReason.trim() || undefined,
+        });
+      } else {
+        await updateRequest("overtime", editTarget.id, {
+          date: editDate,
+          subType: editSubType || undefined,
+        });
+      }
+      toast.success("수정되었습니다.");
+      setEditTarget(null);
+    } catch {
+      toast.error("수정 중 오류가 발생했습니다.");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   return (
     <div className="request-screen">
       <div className="request-header" style={{ backgroundColor: themeColor }}>
@@ -655,37 +711,24 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
               신청 확인
             </button>
 
-            <div className="section-title">
-              {isAdmin ? `전체 ${title} 신청 내역 관리` : `나의 ${title} 신청 내역`}
-            </div>
-            {isAdmin && (
-              <div className="list-toggle">
-                <button
-                  type="button"
-                  className="list-toggle-btn"
-                  style={
-                    adminListTab === "upcoming"
-                      ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
-                      : undefined
-                  }
-                  onClick={() => setAdminListTab("upcoming")}
-                >
-                  예정
-                </button>
-                <button
-                  type="button"
-                  className="list-toggle-btn"
-                  style={
-                    adminListTab === "past"
-                      ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
-                      : undefined
-                  }
-                  onClick={() => setAdminListTab("past")}
-                >
-                  지난 신청
-                </button>
+            <div className="section-title-row">
+              <div className="section-title" style={{ margin: 0 }}>
+                {isAdmin
+                  ? adminListTab === "past"
+                    ? `지난 ${title} 신청 내역`
+                    : `전체 ${title} 신청 내역 관리`
+                  : `나의 ${title} 신청 내역`}
               </div>
-            )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  className="list-toggle-btn"
+                  onClick={() => setAdminListTab((t) => (t === "upcoming" ? "past" : "upcoming"))}
+                >
+                  {adminListTab === "upcoming" ? "지난 신청내역 보기" : "‹ 예정 신청 보기"}
+                </button>
+              )}
+            </div>
             {visibleEntries.length === 0 ? (
               <p className="empty-text">신청 내역이 없습니다.</p>
             ) : (
@@ -709,6 +752,11 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
                       >
                         {e.confirmedAt ? "✓ 관리자 확인 완료" : "확인 대기중"}
                       </span>
+                    )}
+                    {isAdmin && (
+                      <button type="button" className="edit-link" onClick={() => openEdit(e)}>
+                        수정
+                      </button>
                     )}
                     <button type="button" className="cancel-link" onClick={() => handleCancel(e)}>
                       취소
@@ -903,6 +951,113 @@ export default function RequestScreen({ type, title, themeColor }: Props) {
               삭제
             </button>
             <button type="button" className="modal-cancel" onClick={() => setCancelTarget(null)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {editTarget && (
+        <div className="modal-backdrop" onClick={() => setEditTarget(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">
+              {editTarget.name}님 {title} 신청 수정
+            </div>
+
+            <div className="field-label" style={{ marginTop: 0 }}>
+              날짜
+            </div>
+            <input className="text-field" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+
+            {type === "vacation" ? (
+              <>
+                <div className="field-label">휴가 유형</div>
+                <select
+                  className="text-field"
+                  value={editVacationType}
+                  onChange={(e) => setEditVacationType(e.target.value as VacationType)}
+                >
+                  {VACATION_CATEGORIES.map((cat) => {
+                    const subs = SUBTYPES_BY_CATEGORY[cat];
+                    if (!subs) {
+                      return (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      );
+                    }
+                    return (
+                      <optgroup key={cat} label={cat}>
+                        {subs.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+
+                <div className="field-label">시작~종료시간 (선택)</div>
+                <div className="date-row">
+                  <input
+                    className="text-field"
+                    type="time"
+                    value={editStart}
+                    onChange={(e) => setEditStart(e.target.value)}
+                  />
+                  <span>~</span>
+                  <input
+                    className="text-field"
+                    type="time"
+                    value={editEnd}
+                    onChange={(e) => setEditEnd(e.target.value)}
+                  />
+                </div>
+
+                <div className="field-label">행선지</div>
+                <input
+                  className="text-field"
+                  value={editDestination}
+                  onChange={(e) => setEditDestination(e.target.value)}
+                />
+
+                <div className="field-label">사유 (선택)</div>
+                <input className="text-field" value={editReason} onChange={(e) => setEditReason(e.target.value)} />
+              </>
+            ) : (
+              <>
+                <div className="field-label">유형</div>
+                <div className="chip-row">
+                  {OVERTIME_SUBTYPES.map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      className="option-chip"
+                      style={
+                        editSubType === st
+                          ? { backgroundColor: themeColor, borderColor: themeColor, color: "#fff" }
+                          : undefined
+                      }
+                      onClick={() => setEditSubType(st)}
+                    >
+                      {st}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button
+              type="button"
+              className="submit-button"
+              style={{ backgroundColor: themeColor, opacity: editSaving ? 0.6 : 1 }}
+              disabled={editSaving}
+              onClick={handleSaveEdit}
+            >
+              저장
+            </button>
+            <button type="button" className="modal-cancel" onClick={() => setEditTarget(null)}>
               닫기
             </button>
           </div>
