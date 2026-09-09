@@ -165,10 +165,14 @@ export default function FactoryDashboardScreen() {
     return totals;
   }, [teams, overtimeTeamCounts]);
 
+  // 비고도 인원현황 쪽과 마찬가지로 조출/야근 각각 안에서 직장별로 묶는다.
   const overtimeRemarks = useMemo(() => {
-    const map: Record<OvertimeBucket, RequestEntry[]> = { 조출: [], 야근: [] };
+    const map: Record<OvertimeBucket, Map<string, string[]>> = { 조출: new Map(), 야근: new Map() };
     for (const e of selectedOvertimeEntries) {
-      if (e.subType === "조출" || e.subType === "야근") map[e.subType].push(e);
+      if (e.subType !== "조출" && e.subType !== "야근") continue;
+      const teamMap = map[e.subType];
+      if (!teamMap.has(e.team)) teamMap.set(e.team, []);
+      teamMap.get(e.team)!.push(e.name);
     }
     return map;
   }, [selectedOvertimeEntries]);
@@ -340,7 +344,6 @@ export default function FactoryDashboardScreen() {
                     {b}
                   </div>
                 ))}
-                <div className="ot-cell">합계</div>
               </div>
               <div className="ot-row ot-total-row">
                 <div className="ot-cell-label">총계</div>
@@ -349,11 +352,9 @@ export default function FactoryDashboardScreen() {
                     {overtimeTotals[b]}
                   </div>
                 ))}
-                <div className="ot-cell">{OVERTIME_BUCKETS.reduce((sum, b) => sum + overtimeTotals[b], 0)}</div>
               </div>
               {teams.map((team) => {
                 const counts = overtimeTeamCounts[team] ?? emptyOvertimeCounts();
-                const total = OVERTIME_BUCKETS.reduce((sum, b) => sum + counts[b], 0);
                 return (
                   <div key={team} className="ot-row">
                     <div className="ot-cell-label">{displayTeamName(team)}</div>
@@ -362,7 +363,6 @@ export default function FactoryDashboardScreen() {
                         {counts[b]}
                       </div>
                     ))}
-                    <div className="ot-cell">{total}</div>
                   </div>
                 );
               })}
@@ -370,23 +370,37 @@ export default function FactoryDashboardScreen() {
 
             <div className="section-title">비고 (조출·야근 인원)</div>
             <div className="remark-box">
-              {OVERTIME_BUCKETS.map((b) => (
-                <div key={b} className="remark-row">
-                  <div className="remark-type remark-type-ot">{b}</div>
-                  {overtimeRemarks[b].length === 0 ? (
-                    <p className="remark-none">없음</p>
-                  ) : (
-                    <div className="remark-chip-row">
-                      {overtimeRemarks[b].map((e) => (
-                        <span key={e.id} className="remark-chip">
-                          <span className="team">{displayTeamName(e.team)}·</span>
-                          {e.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+              {OVERTIME_BUCKETS.map((b) => {
+                const teamMap = overtimeRemarks[b];
+                return (
+                  <div key={b} className="remark-row">
+                    <div className="remark-type remark-type-ot">{b}</div>
+                    {teamMap.size === 0 ? (
+                      <p className="remark-none">없음</p>
+                    ) : (
+                      teams.map((team) => {
+                        const names = teamMap.get(team);
+                        if (!names || names.length === 0) return null;
+                        return (
+                          <div key={team} className="remark-team-group remark-team-group-ot">
+                            <div className="remark-team-label">
+                              <span className="remark-team-name">{displayTeamName(team)}</span>
+                              <span className="remark-team-count remark-team-count-ot">{names.length}명</span>
+                            </div>
+                            <div className="remark-chip-row">
+                              {names.map((n, i) => (
+                                <span key={`${team}-${i}`} className="remark-chip">
+                                  {n}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
