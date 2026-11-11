@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSession } from "../session/SessionContext";
 import { subscribeToRequests } from "../api/requests";
+import { subscribeToMembers } from "../api/members";
+import { vacationDetail } from "../leave";
 import { todayString } from "../dateUtils";
-import type { RequestEntry, RequestType } from "../types";
+import type { RequestEntry, RequestType, TeamMember } from "../types";
 import MonthCalendar from "../components/MonthCalendar";
 import { BottomNav, JbScreen, ScreenTop } from "../components/JbLayout";
 
@@ -11,8 +13,7 @@ const COLORS: Record<RequestType, string> = { vacation: "#2E6848", overtime: "#C
 
 function detail(e: RequestEntry): string {
   if (e.subType) return e.subType;
-  const time = e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : "";
-  return `${e.leaveType ?? ""}${time}`;
+  return vacationDetail(e);
 }
 
 // 메인의 "캘린더" 화면: 휴가/야근 탭, 날짜별 인원, 날짜를 누르면 명단.
@@ -38,6 +39,14 @@ export default function CalendarScreen() {
       unsubOvertime();
     };
   }, [teamName]);
+
+  // 명단은 업데이트 전처럼 순번 오름차순으로 보여준다
+  const [roster, setRoster] = useState<TeamMember[]>([]);
+  useEffect(() => {
+    if (!teamName) return;
+    return subscribeToMembers(teamName, setRoster);
+  }, [teamName]);
+  const orderByName = useMemo(() => new Map(roster.map((m) => [m.name, m.orderNo])), [roster]);
 
   const confirmed = useMemo(() => entries[type].filter((e) => e.confirmedAt), [entries, type]);
 
@@ -65,7 +74,13 @@ export default function CalendarScreen() {
     return map;
   }, [byDate, type]);
 
-  const dayList = byDate[selected] ?? [];
+  const dayList = useMemo(
+    () =>
+      (byDate[selected] ?? [])
+        .slice()
+        .sort((a, b) => (orderByName.get(a.name) ?? Infinity) - (orderByName.get(b.name) ?? Infinity)),
+    [byDate, selected, orderByName]
+  );
   const label = type === "vacation" ? "휴가" : "야근";
   const [, m, d] = selected.split("-");
 

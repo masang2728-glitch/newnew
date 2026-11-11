@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../session/SessionContext";
 import { subscribeToRequests } from "../api/requests";
+import { subscribeToMembers } from "../api/members";
 import { todayString } from "../dateUtils";
 import { displayTeamName } from "../teamDisplay";
 import { ANNUAL_LEAVE_DAYS } from "../constants";
-import { formatDays, leaveDaysOf } from "../leave";
-import type { RequestEntry } from "../types";
+import { deductedLeaveDaysOf, formatDays, vacationDetail } from "../leave";
+import type { RequestEntry, TeamMember } from "../types";
 import { BottomNav } from "../components/JbLayout";
+import MyLeaveModal from "../components/MyLeaveModal";
 
 // 장비단 리디자인 메인 화면. 숫자는 모두 기존 신청 자료(휴가/야근 표)를 읽기만 해서 계산한다.
 export default function MainScreen() {
@@ -25,6 +27,14 @@ export default function MainScreen() {
       unsubOvertime();
     };
   }, [teamName]);
+
+  // 오늘 휴가/야근 팝업 명단을 순번 오름차순으로 보여주기 위한 이름→순번 표
+  const [roster, setRoster] = useState<TeamMember[]>([]);
+  useEffect(() => {
+    if (!teamName) return;
+    return subscribeToMembers(teamName, setRoster);
+  }, [teamName]);
+  const orderByName = useMemo(() => new Map(roster.map((m) => [m.name, m.orderNo])), [roster]);
 
   const today = todayString();
   const thisYear = today.slice(0, 4);
@@ -44,12 +54,12 @@ export default function MainScreen() {
     () => vacations.filter((e) => !e.confirmedAt).length + overtimes.filter((e) => !e.confirmedAt).length,
     [vacations, overtimes]
   );
-  // 나의 휴가 사용 일수: 올해 내 연가·외출 중 관리자가 승인한 것만 (승인 대기는 빼고 센다)
+  // 나의 휴가 사용 일수: 올해 내 연가·외출 중 관리자가 승인한 것만 (승인 대기, 주말·공휴일은 빼고 센다)
   const myDays = useMemo(
     () =>
       vacations
         .filter((e) => e.name === userName && e.date.startsWith(thisYear) && e.confirmedAt)
-        .reduce((sum, e) => sum + leaveDaysOf(e), 0),
+        .reduce((sum, e) => sum + deductedLeaveDaysOf(e), 0),
     [vacations, userName, thisYear]
   );
   const percent = Math.min(100, (myDays / ANNUAL_LEAVE_DAYS) * 100);
@@ -62,18 +72,18 @@ export default function MainScreen() {
     const byName = new Map<string, string[]>();
     for (const e of source) {
       if (e.date !== today || !e.confirmedAt) continue;
-      const detail =
-        popup === "overtime"
-          ? e.subType ?? ""
-          : `${e.leaveType ?? ""}${e.startTime && e.endTime ? ` · ${e.startTime}~${e.endTime}` : ""}`;
+      const detail = popup === "overtime" ? e.subType ?? "" : vacationDetail(e);
       byName.set(e.name, [...(byName.get(e.name) ?? []), detail]);
     }
-    return [...byName.entries()].map(([name, details]) => ({
-      name,
-      // 같은 날 조출과 야근을 모두 신청한 사람은 "조출 + 야근"으로 한 줄에 보여준다
-      detail: details.join(" + "),
-    }));
-  }, [popup, vacations, overtimes, today]);
+    return [...byName.entries()]
+      .sort(([a], [b]) => (orderByName.get(a) ?? Infinity) - (orderByName.get(b) ?? Infinity))
+      .map(([name, details]) => ({
+        name,
+        // 같은 날 조출과 야근을 모두 신청한 사람은 "조출 + 야근"으로 한 줄에 보여준다
+        detail: details.join(" + "),
+      }));
+  }, [popup, vacations, overtimes, today, orderByName]);
+  const [showMyLeave, setShowMyLeave] = useState(false);
   const [, mm, dd] = today.split("-");
 
   return (
@@ -157,8 +167,11 @@ export default function MainScreen() {
           </button>
         </div>
 
-        <section className="jb-box jb-usage">
-          <h3>나의 휴가 사용 일수</h3>
+        <button type="button" className="jb-box jb-usage jb-usage-button" onClick={() => setShowMyLeave(true)}>
+          <span className="jb-usage-title">
+            <b>나의 휴가 사용 일수</b>
+            <span className="jb-usage-more">내역 보기 ›</span>
+          </span>
           <div className="jb-usage-row">
             <span>올해 사용일수</span>
             <span>
@@ -168,7 +181,7 @@ export default function MainScreen() {
           <div className="jb-bar" role="progressbar" aria-valuenow={myDays} aria-valuemin={0} aria-valuemax={ANNUAL_LEAVE_DAYS}>
             <i style={{ width: `${percent}%` }} />
           </div>
-        </section>
+        </button>
 
         {(isAdmin || homeFactory) && (
           <section className="jb-box jb-admin">
@@ -235,6 +248,14 @@ export default function MainScreen() {
             </button>
           </div>
         </div>
+      )}
+
+      {showMyLeave && (
+        <MyLeaveModal
+          entries={vacations.filter((e) => e.name === userName && e.date.startsWith(thisYear) && e.confirmedAt)}
+          year={thisYear}
+          onClose={() => setShowMyLeave(false)}
+        />
       )}
 
       <BottomNav />

@@ -1388,6 +1388,51 @@ button, input {
 .jb-bar { height: 10px; border-radius: 6px; background: #E6E9E4; overflow: hidden; }
 .jb-bar i { display: block; height: 100%; border-radius: 6px; background: #1D4934; }
 
+/* 나의 휴가 사용 일수: 눌러서 내역 보기 */
+.jb-usage-button { display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.jb-usage-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.jb-usage-title b { font-size: 15px; }
+.jb-usage-more { font-size: 12px; font-weight: 700; color: #1D4934; }
+
+/* 나의 휴가 내역 팝업 */
+.jb-modal.myleave { max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+.myleave-annual { background: #EAF2EC; border-radius: 14px; padding: 12px 14px; }
+.myleave-annual-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.myleave-annual-head b { font-size: 14px; color: #1D4934; }
+.myleave-annual-head span { font-size: 13px; color: #3E4A43; }
+.myleave-annual-head strong { font-size: 20px; color: #1D4934; }
+.myleave-bar { height: 10px; border-radius: 6px; background: #fff; overflow: hidden; margin-top: 8px; display: flex; }
+.myleave-bar i { display: block; height: 100%; }
+.myleave-bar i.annual, .myleave-legend i.annual { background: #1D4934; }
+.myleave-bar i.outing, .myleave-legend i.outing { background: #6FA585; }
+.myleave-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11.5px; color: #3E4A43; margin-top: 6px; }
+.myleave-legend span { display: flex; align-items: center; gap: 4px; }
+.myleave-legend i { width: 8px; height: 8px; border-radius: 2px; }
+.myleave-section-title { font-size: 13.5px; font-weight: 700; margin: 12px 0 6px; }
+.myleave-section-title small { font-weight: 400; color: #5F6B64; }
+.myleave-others { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.myleave-other { border-radius: 12px; padding: 8px 2px 7px; text-align: center; }
+.myleave-other small { display: block; font-size: 11.5px; font-weight: 700; }
+.myleave-other b { display: block; font-size: 16px; margin-top: 2px; }
+.myleave-other em { display: block; font-style: normal; font-size: 10.5px; color: #5F6B64; }
+.myleave-filters { display: flex; gap: 6px; margin: 12px 0 4px; overflow-x: auto; flex: none; }
+.myleave-filters button { flex: none; min-height: 32px; border-radius: 999px; padding: 0 12px; font: inherit; font-size: 12.5px; border: 1px solid #DDE3DE; background: #fff; color: #3E4A43; cursor: pointer; }
+.myleave-filters button.active { border-color: #1D4934; background: #1D4934; color: #fff; font-weight: 700; }
+.myleave-list { overflow: auto; flex: 1; min-height: 120px; }
+.myleave-list .jb-row:first-child { border-top: 0; }
+.myleave-row-top { display: flex; align-items: center; gap: 8px; }
+.myleave-badge { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.myleave-days { margin-left: auto; font-size: 13px; font-weight: 600; color: #5F6B64; }
+.myleave-days.deducted { font-weight: 700; color: #1D4934; }
+.kind-연가 { color: #1D4934; background: #EAF2EC; }
+.kind-외출 { color: #2E6848; background: #EEF5F0; }
+.kind-청원휴가 { color: #5B3F94; background: #F1EDF8; }
+.kind-병가 { color: #9A4512; background: #FBEFE6; }
+.kind-공가 { color: #24508C; background: #E9F0FA; }
+.kind-특별휴가 { color: #16665F; background: #E5F3F1; }
+.kind-기타 { color: #4A554E; background: #EEF0ED; }
+.myleave-other.kind-기타 small, .myleave-other.kind-기타 b { color: #4A554E; }
+
 /* 아래 메뉴줄 */
 .jb-nav { position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(480px, 100%); height: 64px; padding-bottom: env(safe-area-inset-bottom); background: #fff; border-top: 1px solid #E5EAE6; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); z-index: 30; }
 .jb-nav-item { border: 0; background: none; font: inherit; font-size: 11px; color: #6B776F; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
