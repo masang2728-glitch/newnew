@@ -5,6 +5,9 @@ export const ADMIN_PIN = "2957";
 // 최고관리자(앱 전체 현황 조회/팀 삭제) 전용 암호. 팀 관리자 암호와는 별개입니다.
 export const SUPER_ADMIN_PIN = "2728";
 
+// 메인 화면 "나의 휴가 사용 일수 n / 21일"의 기준 일수 (연가만, 모든 사람 동일)
+export const ANNUAL_LEAVE_DAYS = 21;
+
 export const APP_CREATED_AT = "2026-07-30";
 export const APP_AUTHOR = "윤상경";
 

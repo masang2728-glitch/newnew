@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import { upsertMember } from "../api/members";
 import { fetchOrgGroups, type OrgGroup } from "../api/orgGroups";
+import BrandLogo from "../components/BrandLogo";
 
 export default function NameEntryScreen() {
   const { login, loginSuperAdmin } = useSession();
@@ -46,6 +47,10 @@ export default function NameEntryScreen() {
   };
 
   const handleEnter = async () => {
+    if (!team.trim()) {
+      toast.error("소속 공장과 직장을 선택해주세요.");
+      return;
+    }
     if (!name.trim()) {
       toast.error("이름을 입력해주세요.");
       return;
@@ -53,10 +58,6 @@ export default function NameEntryScreen() {
     const orderNoValue = Number(orderNo.trim());
     if (!orderNo.trim() || !Number.isFinite(orderNoValue)) {
       toast.error("순번을 입력해주세요.");
-      return;
-    }
-    if (!team.trim()) {
-      toast.error("직장을 선택해주세요.");
       return;
     }
     // "본부"(또는 "OO공장본부" 등 "본부"가 들어간 직장)는 사실상 공장 관리 부서라,
@@ -86,108 +87,127 @@ export default function NameEntryScreen() {
     navigate("/super-admin", { replace: true });
   };
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleEnter();
-  };
-
   const onSuperAdminKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSuperAdminEnter();
+    if (e.key === "Enter") {
+      e.preventDefault(); // 폼의 일반 로그인 제출로 넘어가지 않게
+      handleSuperAdminEnter();
+    }
   };
 
   const noOrgRegistered = !loadingOrg && factoryNames.length === 0;
 
+  // 장비단 리디자인 입장 화면. 입력 순서: 소속 공장 → 소속 직장 → 이름 → 순번 (로그인 동작은 그대로)
   return (
-    <div className="entry-screen">
-      <div className="entry-card">
-        <h1 className="entry-title">휴가/야근 신청 캘린더</h1>
-        <p className="entry-subtitle">이름, 순번, 소속을 선택하고 입장해주세요</p>
-
-        <input
-          className="entry-input"
-          placeholder="이름"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={onKeyDown}
-          autoFocus
-        />
-        <input
-          className="entry-input"
-          placeholder="순번"
-          type="number"
-          value={orderNo}
-          onChange={(e) => setOrderNo(e.target.value)}
-          onKeyDown={onKeyDown}
-        />
+    <div className="entry-screen jb-entry">
+      <form
+        className="entry-card"
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleEnter();
+        }}
+      >
+        <div className="entry-brand">
+          <BrandLogo size={100} outline="#F2F3EE" />
+          <h1 className="entry-title">
+            장비단
+            <br />
+            휴가관리 시스템
+          </h1>
+          <p className="entry-subtitle">로그인 정보를 입력해주세요</p>
+        </div>
 
         {loadingOrg ? (
-          <p className="empty-text">공장/직장 목록을 불러오는 중...</p>
+          <p className="entry-hint">공장/직장 목록을 불러오는 중...</p>
         ) : noOrgRegistered ? (
-          <p className="empty-text">
-            아직 등록된 공장/직장이 없습니다. 최고관리자에게 등록을 요청해주세요.
-          </p>
+          <p className="entry-hint">아직 등록된 공장/직장이 없습니다. 최고관리자에게 등록을 요청해주세요.</p>
         ) : (
           <>
-            <div className="field-label" style={{ marginTop: 0 }}>
-              소속공장
-            </div>
-            <select
-              className="entry-select"
-              value={factory}
-              onChange={(e) => handleFactoryChange(e.target.value)}
-            >
-              <option value="" disabled>
-                소속공장 선택
-              </option>
-              {factoryNames.map((f) => (
-                <option key={f} value={f}>
-                  {f}
+            <label className="entry-field">
+              <select
+                className="entry-select jb-plain"
+                aria-label="소속 공장"
+                value={factory}
+                onChange={(e) => handleFactoryChange(e.target.value)}
+              >
+                <option value="" disabled>
+                  소속 공장 선택
                 </option>
-              ))}
-            </select>
-            <div className="field-label" style={{ marginTop: 0 }}>
-              소속직장
-            </div>
-            <select className="entry-select" value={team} onChange={(e) => setTeam(e.target.value)}>
-              <option value="" disabled>
-                소속직장 선택
-              </option>
-              {teamsInFactory.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+                {factoryNames.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="entry-field">
+              <select
+                className="entry-select jb-plain"
+                aria-label="소속 직장"
+                value={team}
+                onChange={(e) => setTeam(e.target.value)}
+              >
+                <option value="" disabled>
+                  {factory ? "소속 직장 선택" : "공장을 먼저 선택하세요"}
                 </option>
-              ))}
-            </select>
+                {teamsInFactory.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
           </>
         )}
 
-        <p className="entry-hint">
-          공장과 직장을 선택하면 같은 직장 동료와 캘린더를 공유합니다.
-        </p>
-
-        {showPin ? (
+        <label className="entry-field">
           <input
-            className="entry-input"
-            placeholder="관리자 암호"
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            onKeyDown={onKeyDown}
+            className="entry-input jb-plain"
+            placeholder="이름을 입력하세요"
+            aria-label="이름"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
           />
-        ) : (
+        </label>
+        <label className="entry-field">
+          <input
+            className="entry-input jb-plain"
+            placeholder="순번을 입력하세요"
+            aria-label="순번"
+            type="number"
+            inputMode="numeric"
+            value={orderNo}
+            onChange={(e) => setOrderNo(e.target.value)}
+          />
+        </label>
+
+        {showPin && (
+          <label className="entry-field">
+            <input
+              className="entry-input jb-plain"
+              placeholder="관리자 암호"
+              aria-label="관리자 암호"
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+            />
+          </label>
+        )}
+
+        <button type="submit" className="entry-button" disabled={entering || noOrgRegistered}>
+          {entering ? "로그인 중..." : "로그인"}
+        </button>
+
+        {!showPin && (
           <button type="button" className="entry-admin-link" onClick={() => setShowPin(true)}>
             관리자이신가요?
           </button>
         )}
 
-        <button type="button" className="entry-button" onClick={handleEnter} disabled={entering || noOrgRegistered}>
-          {entering ? "입장 중..." : "입장"}
-        </button>
-
         <div className="super-admin-block">
           {showSuperAdmin ? (
             <>
               <input
-                className="entry-input"
+                className="entry-input jb-plain"
                 placeholder="최고관리자 암호"
                 type="password"
                 value={superAdminCode}
@@ -204,7 +224,8 @@ export default function NameEntryScreen() {
             </button>
           )}
         </div>
-      </div>
+      </form>
+      <div className="jb-entry-photo" aria-hidden="true" />
     </div>
   );
 }

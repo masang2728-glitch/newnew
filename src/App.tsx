@@ -10,6 +10,11 @@ import TeamMembersScreen from "./screens/TeamMembersScreen";
 import FactoryDashboardScreen from "./screens/FactoryDashboardScreen";
 import TeamDashboardScreen from "./screens/TeamDashboardScreen";
 import AccidentManagementScreen from "./screens/AccidentManagementScreen";
+import SplashScreen from "./components/SplashScreen";
+import CalendarScreen from "./screens/CalendarScreen";
+import PendingScreen from "./screens/PendingScreen";
+import MoreScreen from "./screens/MoreScreen";
+import WeeklyScreen from "./screens/WeeklyScreen";
 
 function RequireSession({ children }: { children: React.ReactNode }) {
   const { userName, teamName, isLoading } = useSession();
@@ -65,7 +70,7 @@ function App() {
             path="/vacation"
             element={
               <RequireSession>
-                <RequestScreen type="vacation" title="휴가" themeColor="#2563EB" />
+                <RequestScreen type="vacation" title="휴가" themeColor="#2E6848" />
               </RequireSession>
             }
           />
@@ -73,7 +78,39 @@ function App() {
             path="/overtime"
             element={
               <RequireSession>
-                <RequestScreen type="overtime" title="야근" themeColor="#F97316" />
+                <RequestScreen type="overtime" title="야근" themeColor="#C46A22" />
+              </RequireSession>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <RequireSession>
+                <CalendarScreen />
+              </RequireSession>
+            }
+          />
+          <Route
+            path="/pending"
+            element={
+              <RequireSession>
+                <PendingScreen />
+              </RequireSession>
+            }
+          />
+          <Route
+            path="/weekly"
+            element={
+              <RequireSession>
+                <WeeklyScreen />
+              </RequireSession>
+            }
+          />
+          <Route
+            path="/more"
+            element={
+              <RequireSession>
+                <MoreScreen />
               </RequireSession>
             }
           />
@@ -128,6 +165,7 @@ function App() {
         </Routes>
       </HashRouter>
       <Toaster position="top-center" />
+      <SplashScreen />
     </SessionProvider>
   );
 }

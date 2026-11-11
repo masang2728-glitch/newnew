@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import type { RequestEntry, RequestType, TeamMember } from "../types";
@@ -79,7 +79,9 @@ function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string
 export default function RequestScreen({ type, title, themeColor }: Props) {
   const { userName, teamName, isAdmin } = useSession();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>("apply");
+  // 메인의 "캘린더" 메뉴로 들어오면(?tab=calendar) 캘린더 탭부터 보여준다.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "calendar" ? "calendar" : "apply");
   const [entries, setEntries] = useState<RequestEntry[]>([]);
   const [viewingDate, setViewingDate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

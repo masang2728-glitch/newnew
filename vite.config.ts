@@ -15,8 +15,8 @@ export default defineConfig({
         description: '팀별 휴가/야근 신청 공유 캘린더',
         start_url: '/',
         display: 'standalone',
-        background_color: '#1C376C',
-        theme_color: '#2563EB',
+        background_color: '#1D3A2C',
+        theme_color: '#173D2B',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -29,7 +29,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+        globPatterns: ['**/*.{js,css,html,png,jpg,svg,ico}'],
       },
     }),
   ],

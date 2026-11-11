@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useSession } from "../session/SessionContext";
 import { subscribeToMembers, deleteMember } from "../api/members";
+import { displayTeamName } from "../teamDisplay";
 import type { TeamMember } from "../types";
+import { BottomNav, JbScreen, ScreenTop } from "../components/JbLayout";
 
 export default function TeamMembersScreen() {
   const { userName, teamName, isAdmin } = useSession();
-  const navigate = useNavigate();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingName, setDeletingName] = useState<string | null>(null);
@@ -42,58 +42,46 @@ export default function TeamMembersScreen() {
     }
   };
 
+  // 조직도: 선으로 그린 사람 모양을 4열로, 순번 순서대로 (관리자 삭제 기능은 그대로)
   return (
-    <div className="request-screen">
-      <div className="request-header" style={{ backgroundColor: "#0f766e" }}>
-        <div className="request-header-row">
-          <div>
-            <h1 className="request-title">{teamName} 팀원 현황</h1>
-            <div className="request-user">
-              {userName}님{isAdmin ? " · 관리자" : ""}
-            </div>
-          </div>
-          <button type="button" className="request-back" onClick={() => navigate("/main")}>
-            메인으로 돌아가기 ›
-          </button>
+    <JbScreen>
+      <ScreenTop title="조직도" />
+      <div className="jb-body">
+        <div className="jb-org-title">
+          {teamName ? displayTeamName(teamName) : ""} · 총원 {members.length}명
         </div>
-      </div>
-
-      <div className="content">
-        <div className="stat-grid" style={{ gridTemplateColumns: "1fr" }}>
-          <div className="stat-card">
-            <div className="stat-value">{members.length}</div>
-            <div className="stat-label">총원</div>
-          </div>
-        </div>
-
-        <div className="section-title">팀원 명단</div>
         {loading ? (
-          <p className="empty-text">불러오는 중...</p>
+          <p className="jb-empty">불러오는 중...</p>
         ) : members.length === 0 ? (
-          <p className="empty-text">아직 등록된 팀원이 없습니다.</p>
+          <p className="jb-empty">아직 등록된 팀원이 없습니다.</p>
         ) : (
-          members.map((m) => (
-            <div key={`${m.orderNo}-${m.name}`} className="team-row">
-              <div className="team-row-main">
-                <div className="team-row-name">
-                  {m.orderNo}. {m.name}
-                  {m.name === userName ? " (나)" : ""}
-                </div>
+          <div className="jb-org">
+            {members.map((m) => (
+              <div key={`${m.orderNo}-${m.name}`} className={`jb-person${m.name === userName ? " me" : ""}`}>
+                <svg width="44" height="48" viewBox="0 0 44 48" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="22" cy="13" r="9" />
+                  <path d="M6 45c0-11 7-18 16-18s16 7 16 18" />
+                </svg>
+                <b>{m.name}</b>
+                <small>
+                  {m.orderNo}번{m.name === userName ? " · 나" : ""}
+                </small>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="jb-person-delete"
+                    disabled={deletingName === m.name}
+                    onClick={() => handleDelete(m)}
+                  >
+                    {deletingName === m.name ? "삭제 중" : "삭제"}
+                  </button>
+                )}
               </div>
-              {isAdmin && (
-                <button
-                  type="button"
-                  className="cancel-link"
-                  disabled={deletingName === m.name}
-                  onClick={() => handleDelete(m)}
-                >
-                  {deletingName === m.name ? "삭제 중..." : "삭제"}
-                </button>
-              )}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-    </div>
+      <BottomNav />
+    </JbScreen>
   );
 }
